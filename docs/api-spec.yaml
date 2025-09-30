@@ -1,0 +1,169 @@
+openapi: 3.0.0
+info:
+  title: AutoServe API
+  description: API for Automobile Service Management System
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+paths:
+  /auth/login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /customers:
+    get:
+      summary: Get all customers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of customers
+    post:
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        '201':
+          description: Customer created
+  /employees:
+    get:
+      summary: Get all employees
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of employees
+  /services:
+    get:
+      summary: Get all services
+      responses:
+        '200':
+          description: List of services
+    post:
+      summary: Create a new service
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Service'
+      responses:
+        '201':
+          description: Service created
+  /projects:
+    get:
+      summary: Get all projects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of projects
+    post:
+      summary: Create a new project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+      responses:
+        '201':
+          description: Project created
+  /chatbot/availability:
+    post:
+      summary: Check service availability via chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                serviceType:
+                  type: string
+      responses:
+        '200':
+          description: Availability information
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        status:
+          type: string
+        customerId:
+          type: integer
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        status:
+          type: string
+        customerId:
+          type: integer
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

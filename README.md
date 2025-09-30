@@ -29,7 +29,7 @@ This is a monolithic enterprise-grade application for managing automobile servic
 The application follows a monolithic architecture with:
 - **Backend**: Spring Boot with JPA, WebSocket, Security, Validation
 - **Frontend**: React with Vite, Tailwind CSS
-- **Database**: SQL Server
+- **Database**: MySQL
 - **Deployment**: Docker and Kubernetes
 
 ## Setup

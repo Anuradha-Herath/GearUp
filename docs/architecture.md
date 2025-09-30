@@ -9,7 +9,7 @@ The AutoServe application is designed as a monolithic system for managing automo
 ### Backend (Spring Boot)
 - **Framework**: Spring Boot 3.2.0
 - **Language**: Java 17
-- **Database**: SQL Server with JPA/Hibernate
+- **Database**: MySQL with JPA/Hibernate
 - **Security**: Spring Security with role-based access control
 - **Real-time**: WebSocket for live updates
 - **Validation**: Bean validation
@@ -23,7 +23,7 @@ The AutoServe application is designed as a monolithic system for managing automo
 - **Routing**: React Router (to be added)
 
 ### Database
-- **Type**: SQL Server
+- **Type**: MySQL
 - **Migration**: Flyway/Liquibase scripts in `database/migrations/`
 - **Seed Data**: Sample data in `database/seed/`
 

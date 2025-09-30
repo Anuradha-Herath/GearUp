@@ -1,15 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useAuth as useAuthContext } from '../context/AuthContext';
 
 const useAuth = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    // Check authentication status
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
-  }, []);
-
-  return { isAuthenticated };
+  return useAuthContext();
 };
 
 export default useAuth;

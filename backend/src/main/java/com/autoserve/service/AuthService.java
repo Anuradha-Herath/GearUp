@@ -7,6 +7,7 @@ import com.autoserve.entity.User;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.util.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,14 +30,18 @@ public class AuthService {
     }
 
     public JwtResponse login(LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtil.generateToken(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtil.generateToken(authentication);
 
-        User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
-        return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail());
+            User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
+            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail());
+        } catch (BadCredentialsException e) {
+            throw new RuntimeException("Invalid username or password");
+        }
     }
 
     public void signup(SignupRequest signupRequest) {
@@ -46,6 +51,15 @@ public class AuthService {
 
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new RuntimeException("Email is already in use!");
+        }
+
+        // Basic validation
+        if (signupRequest.getUsername().length() < 3) {
+            throw new RuntimeException("Username must be at least 3 characters long");
+        }
+
+        if (signupRequest.getPassword().length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters long");
         }
 
         User user = new User();

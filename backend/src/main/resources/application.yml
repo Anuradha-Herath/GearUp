@@ -2,10 +2,10 @@ spring:
   profiles:
     active: dev
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=autoserve
-    username: sa
-    password: YourPassword123
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:mysql://localhost:3306/autoserve?createDatabaseIfNotExist=true
+    username: root
+    password: Anu@2001
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -14,6 +14,10 @@ spring:
     enabled: true
 server:
   port: 8080
+
+jwt:
+  secret: mySecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongAndIsDefinitelyLongEnoughForHS512Algorithm
+  expiration: 86400000
 
 ---
 spring:
@@ -24,6 +28,10 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
 
 ---
 spring:
@@ -36,3 +44,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+
+jwt:
+  secret: testSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLong
+  expiration: 86400000

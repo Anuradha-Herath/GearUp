@@ -40,7 +40,7 @@ const authService = {
       throw new Error(error || 'Signup failed');
     }
 
-    return response.text();
+    return await response.text();
   },
 
   logout: async () => {

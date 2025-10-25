@@ -27,11 +27,13 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      await authService.signup(formData);
-      setSuccess('Account created successfully! You can now log in.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      const message = await authService.signup(formData);
+      // Show the actual backend response message (it's a plain string)
+      setSuccess(message);
+      // Don't automatically redirect - let user read the verification message
+      // setTimeout(() => {
+      //   navigate('/login');
+      // }, 2000);
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
     } finally {

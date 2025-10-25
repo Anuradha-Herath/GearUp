@@ -20,10 +20,16 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+  
+
     private String role = "USER";
 
     private String verificationCode;
     private boolean enabled = false; // account active only after verification
+
+    // Password Reset fields
+    private String resetPasswordToken;
+    private Long resetPasswordTokenExpiry;
 
     // Manual getters and setters for compilation if Lombok fails
     public Long getId() {
@@ -80,5 +86,21 @@ public class User {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getResetPasswordToken() {
+        return resetPasswordToken;
+    }
+
+    public void setResetPasswordToken(String resetPasswordToken) {
+        this.resetPasswordToken = resetPasswordToken;
+    }
+
+    public Long getResetPasswordTokenExpiry() {
+        return resetPasswordTokenExpiry;
+    }
+
+    public void setResetPasswordTokenExpiry(Long resetPasswordTokenExpiry) {
+        this.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
     }
 }

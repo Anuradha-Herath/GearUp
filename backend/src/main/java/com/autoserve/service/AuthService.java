@@ -109,4 +109,57 @@ public class AuthService {
 
         mailService.sendVerificationEmail(user.getEmail(), subject, htmlContent);
     }
+
+    public void forgotPassword(String email) throws IOException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found with this email address"));
+
+        // Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+        long tokenExpiry = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours from now
+
+        user.setResetPasswordToken(resetToken);
+        user.setResetPasswordTokenExpiry(tokenExpiry);
+        userRepository.save(user);
+
+        // Send password reset email
+        String subject = "AutoServe - Password Reset Request";
+
+        String htmlContent =
+                "<!DOCTYPE html>" +
+                "<html><body style='font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;'>" +
+                "<div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; border: 1px solid #ddd;'>" +
+                "<h2 style='color: #333;'>Password Reset Request 🔒</h2>" +
+                "<p>Hello <strong>" + user.getUsername() + "</strong>,</p>" +
+                "<p>We received a request to reset your AutoServe account password.</p>" +
+                "<p>To reset your password, click the button below:</p>" +
+                "<p style='text-align: center; margin: 30px 0;'>" +
+                "<a href='http://localhost:3000/reset-password?token=" + resetToken + "' " +
+                "style='background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'>Reset My Password</a></p>" +
+                "<p><strong>Important:</strong> This link will expire in 24 hours for security reasons.</p>" +
+                "<p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>" +
+                "<p>Best regards,<br><strong>The AutoServe Team</strong></p>" +
+                "<hr>" +
+                "<p style='font-size: 12px; color: #777;'>This is an automated message from AutoServe. Please do not reply.</p>" +
+                "</div></body></html>";
+
+        mailService.sendVerificationEmail(user.getEmail(), subject, htmlContent);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+        // Check if token is expired
+        if (user.getResetPasswordTokenExpiry() == null || 
+            System.currentTimeMillis() > user.getResetPasswordTokenExpiry()) {
+            throw new RuntimeException("Reset token has expired. Please request a new password reset.");
+        }
+
+        // Update password and clear reset token
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiry(null);
+        userRepository.save(user);
+    }
 }

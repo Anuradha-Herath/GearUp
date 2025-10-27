@@ -1,23 +1,10 @@
+
 spring:
   profiles:
     active: dev
-  datasource:
-    url: jdbc:mysql://localhost:3306/autoserve?createDatabaseIfNotExist=true
-    username: root
-    password: Anu@2001
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-  websocket:
-    enabled: true
+
 server:
   port: 8080
-
-jwt:
-  secret: mySecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongAndIsDefinitelyLongEnoughForHS512Algorithm
-  expiration: 86400000
 
 ---
 spring:
@@ -32,6 +19,12 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
+
+sendgrid:
+  api:
+    key: ${SENDGRID_API_KEY}
+  from:
+    email: ${SENDGRID_FROM_EMAIL}
 
 ---
 spring:
@@ -48,3 +41,9 @@ spring:
 jwt:
   secret: testSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLong
   expiration: 86400000
+
+sendgrid:
+  api:
+    key: test-api-key
+  from:
+    email: test@autoserve.com

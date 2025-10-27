@@ -221,7 +221,6 @@ logs
 # For example, if you have local config files
 application-local.yml
 application-dev.yml
-# But in this project, application.yml is in resources, so maybe not
 
 # Frontend build
 dist/

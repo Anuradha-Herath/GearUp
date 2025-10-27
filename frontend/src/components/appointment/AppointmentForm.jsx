@@ -1,10 +1,14 @@
 import React from 'react';
+import BookingForm from './BookingForm';
 
-const AppointmentForm = () => {
+const AppointmentForm = ({ serviceId, serviceName, onSubmitSuccess }) => {
   return (
     <div>
-      <h2>Appointment Form</h2>
-      {/* Form implementation */}
+      <BookingForm 
+        serviceId={serviceId} 
+        serviceName={serviceName}
+        onSubmitSuccess={onSubmitSuccess}
+      />
     </div>
   );
 };

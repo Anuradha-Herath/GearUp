@@ -7,7 +7,9 @@ import com.autoserve.dto.Auth.LoginRequest;
 import com.autoserve.dto.Auth.JwtResponse;
 import com.autoserve.dto.Auth.SignupRequest;
 import com.autoserve.entity.User;
+import com.autoserve.entity.Employee;
 import com.autoserve.repository.UserRepository;
+import com.autoserve.repository.EmployeeRepository;
 import com.autoserve.util.JwtUtil;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +31,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
     private final MailService mailService;
 
     @Value("${app.frontend-base-url:http://localhost:5173}")
@@ -39,40 +42,83 @@ public class AuthService {
 
     public AuthService(AuthenticationManager authenticationManager, JwtUtil jwtUtil, 
                        PasswordEncoder passwordEncoder, UserRepository userRepository, 
-                       MailService mailService) {
+                       EmployeeRepository employeeRepository, MailService mailService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
         this.mailService = mailService;
     }
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            User user;
+            // First try to find in users table
+            User user = null;
+            Employee employee = null;
+            
+            String email = loginRequest.getEmail();
+            String username = loginRequest.getUsername();
 
-            // Prefer email-based login when provided
-            if (loginRequest.getEmail() != null && !loginRequest.getEmail().isBlank()) {
-                user = userRepository.findByEmailIgnoreCase(loginRequest.getEmail())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-            } else if (loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()) {
-                user = userRepository.findByUsername(loginRequest.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+            if (email != null && !email.isBlank()) {
+                // Try users table first
+                user = userRepository.findByEmailIgnoreCase(email).orElse(null);
+                
+                // If not found in users, try employees table
+                if (user == null) {
+                    employee = employeeRepository.findByEmail(email);
+                }
+            } else if (username != null && !username.isBlank()) {
+                // Try users table first
+                user = userRepository.findByUsername(username).orElse(null);
+                
+                // If not found in users, try employees table
+                if (user == null) {
+                    employee = employeeRepository.findByUsername(username);
+                }
             } else {
                 throw new RuntimeException("Email is required");
             }
 
-            if (!user.isEnabled()) {
-                throw new RuntimeException("Account not verified. Please check your email and verify your account.");
+            // If neither user nor employee found
+            if (user == null && employee == null) {
+                throw new RuntimeException("User not found");
             }
 
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword()));
+            // Handle user login
+            if (user != null) {
+                if (!user.isEnabled()) {
+                    throw new RuntimeException("Account not verified. Please check your email and verify your account.");
+                }
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtUtil.generateToken(authentication);
+                Authentication authentication = authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword()));
 
-            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                String jwt = jwtUtil.generateToken(authentication);
+
+                return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
+            }
+            
+            // Handle employee login
+            else if (employee != null) {
+                // For employees, we need to check password manually since they don't go through UserDetailsService
+                if (!passwordEncoder.matches(loginRequest.getPassword(), employee.getPassword())) {
+                    throw new RuntimeException("Invalid email or password");
+                }
+
+                // For employees, we'll generate JWT with employee info
+                // Create a temporary authentication object for JWT generation
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    employee.getUsername(), null, java.util.Collections.emptyList());
+
+                String jwt = jwtUtil.generateToken(authentication);
+
+                return new JwtResponse(jwt, employee.getId(), employee.getUsername(), employee.getEmail(), employee.getRole().toUpperCase());
+            }
+
+            throw new RuntimeException("Login failed");
+            
         } catch (BadCredentialsException e) {
             throw new RuntimeException("Invalid email or password");
         }

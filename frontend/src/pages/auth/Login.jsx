@@ -25,20 +25,27 @@ const Login = () => {
 
     try {
       const response = await authService.login(formData);
-      // Get user role from response or localStorage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const role = user.role || response.role || 'USER';
+      console.log('Login response:', response);
+      
+      // Get user role from response (the backend now returns the role in the JWT response)
+      const role = response.role || 'USER';
+      
+      console.log('User role:', role);
 
       // Redirect based on role
       if (role === 'ADMIN') {
+        console.log('Redirecting to admin dashboard');
         navigate('/admin/dashboard');
-      } else if (role === 'EMPLOYEE') {
+      } else if (role === 'EMPLOYEE' || role === 'employee') {
+        console.log('Redirecting to employee dashboard');
         navigate('/employee/dashboard');
       } else {
         // Default to customer dashboard for USER role
+        console.log('Redirecting to customer dashboard');
         navigate('/customer/dashboard');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);

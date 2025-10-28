@@ -26,8 +26,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(authService.login(loginRequest));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            JwtResponse response = authService.login(loginRequest);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            System.out.println("[LOGIN] Error: " + e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                "error", e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/signup")

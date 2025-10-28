@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const authService = {
   login: async (credentials) => {
@@ -22,10 +22,16 @@ const authService = {
         // Try to get error message from response
         let errorMessage = 'Login failed';
         try {
-          const errorData = await response.text();
-          errorMessage = errorData || errorMessage;
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
         } catch (e) {
-          console.error('Error parsing error response:', e);
+          // If JSON parsing fails, try text
+          try {
+            const textData = await response.text();
+            errorMessage = textData || errorMessage;
+          } catch (e2) {
+            console.error('Error parsing error response:', e2);
+          }
         }
         throw new Error(errorMessage);
       }

@@ -1,10 +1,38 @@
 
 spring:
   profiles:
-    active: dev
+    active: test
 
 server:
   port: 8080
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:gearupdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+
+jwt:
+  secret: devSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongForDevelopment
+  expiration: 86400000
+
+sendgrid:
+  api:
+    key: SG.test-api-key
+  from:
+    email: dev@gearup.com
 
 ---
 spring:
@@ -37,6 +65,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
 
 jwt:
   secret: testSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLong

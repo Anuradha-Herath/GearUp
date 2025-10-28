@@ -13,7 +13,7 @@ const images = [
   `url(${image5})`
 ];
 
-const HeroSection = () => {
+const HeroSection = ({ isCustomer = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -37,10 +37,39 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style={{ backgroundImage: images[nextIndex], opacity: isTransitioning ? 1 : 0 }}></div>
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50"></div>
       <div className="container mx-auto px-4 text-center relative z-10">
-        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">Your Trusted Auto Care Partner</h1>
-        <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-200">Providing top-quality service and maintenance for all your vehicle needs.</p>
-        <div className="mt-8">
-          <a className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105" href="#"> Explore Services </a>
+        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
+          {isCustomer ? 'Welcome Back to GearUp' : 'Your Trusted Auto Care Partner'}
+        </h1>
+        <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-200">
+          {isCustomer
+            ? 'Book your next service appointment with ease. Our certified technicians are ready to serve you.'
+            : 'Providing top-quality service and maintenance for all your vehicle needs.'
+          }
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          {isCustomer ? (
+            <>
+              <a
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
+                href="/customer/book-appointment"
+              >
+                Book Appointment
+              </a>
+              <a
+                className="inline-flex h-12 items-center justify-center rounded-lg border border-white px-6 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:bg-white/10"
+                href="/customer/my-bookings"
+              >
+                View My Bookings
+              </a>
+            </>
+          ) : (
+            <a
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
+              href="#"
+            >
+              Explore Services
+            </a>
+          )}
         </div>
       </div>
     </section>

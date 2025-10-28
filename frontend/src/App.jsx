@@ -7,7 +7,6 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
-import AdminDashboard from './pages/admin/adminDashboard';
 import ManageEmployees from './pages/admin/ManageEmployees';
 import ManageCustomers from './pages/admin/ManageCustomers';
 import ManageAppointments from './pages/admin/ManageAppointments';

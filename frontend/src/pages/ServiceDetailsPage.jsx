@@ -4,12 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import Header from '../components/layout/Header';
 import BookingForm from '../components/appointment/BookingForm';
 
-const ServiceDetailsPage = () => {
+const ServiceDetailsPage = ({ hideHeader = false, isAuthenticatedProp }) => {
   const { serviceId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: authContextValue } = useAuth();
   const [showBookingForm, setShowBookingForm] = useState(false);
+
+  // Use passed prop if available, otherwise use context value
+  const isAuthenticated = isAuthenticatedProp !== undefined ? isAuthenticatedProp : authContextValue;
 
   // Get service from location state
   const service = location.state?.service || null;
@@ -25,7 +28,7 @@ const ServiceDetailsPage = () => {
   if (!service) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <Header />
+        {!hideHeader && <Header />}
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
           <button
@@ -41,12 +44,12 @@ const ServiceDetailsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
+      {!hideHeader && <Header />}
 
       {/* Service Details Section */}
       <div className="container mx-auto px-4 py-12">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/customer/services')}
           className="inline-flex items-center text-primary font-medium hover:text-primary/80 transition-colors mb-8"
         >
           ← Back to Services
@@ -66,7 +69,7 @@ const ServiceDetailsPage = () => {
               <div className="lg:col-span-2">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Service</h2>
                 <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                  {serviceInfo.detailedDescription}
+                  {serviceInfo.detailedDescription || serviceInfo.description || "Get detailed information about our services."}
                 </p>
 
                 <h3 className="text-xl font-bold text-gray-900 mb-4">What's Included</h3>
@@ -106,16 +109,16 @@ const ServiceDetailsPage = () => {
 
                   <div className="mb-6 pb-6 border-b border-primary/20">
                     <p className="text-gray-600 text-sm mb-2">Estimated Duration</p>
-                    <p className="text-xl font-semibold text-gray-900">2-4 Hours</p>
+                    <p className="text-xl font-semibold text-gray-900">{serviceInfo.duration || '2-4 Hours'}</p>
                   </div>
 
                   <div className="mb-6 pb-6 border-b border-primary/20">
-                    <p className="text-gray-600 text-sm mb-2">Price Range</p>
-                    <p className="text-3xl font-bold text-primary">$150 - $500</p>
-                    <p className="text-xs text-gray-600 mt-1">*Actual price varies based on vehicle</p>
+                    <p className="text-gray-600 text-sm mb-2">Service Price</p>
+                    <p className="text-3xl font-bold text-primary">{serviceInfo.price || '$150 - $500'}</p>
+                    <p className="text-xs text-gray-600 mt-1">*Price includes parts and labor</p>
                   </div>
 
-                  {/* Authentication Check - COMMENTED OUT FOR TESTING */}
+                  {/* Authentication Check - Temporarily disabled for testing */}
                   {/* {!isAuthenticated ? (
                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-800 mb-3">
@@ -137,32 +140,24 @@ const ServiceDetailsPage = () => {
                         </button>
                       </p>
                     </div>
-                  ) : (
+                  ) : ( */}
                     <button
                       onClick={() => setShowBookingForm(!showBookingForm)}
                       className="w-full inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary/90 transition-colors"
                     >
                       {showBookingForm ? 'Hide Booking Form' : 'Book Now'}
                     </button>
-                  )} */}
-
-                  {/* TESTING MODE: Always show Book Now button */}
-                  <button
-                    onClick={() => setShowBookingForm(!showBookingForm)}
-                    className="w-full inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary/90 transition-colors"
-                  >
-                    {showBookingForm ? 'Hide Booking Form' : 'Book Now'}
-                  </button>
+                  {/* )} */}
                 </div>
               </div>
             </div>
 
-            {/* Booking Form Section - ALWAYS SHOW FOR TESTING */}
+            {/* Booking Form Section - Always show for testing */}
             {showBookingForm && (
               <div className="mt-12 p-8 bg-gray-50 rounded-lg border-2 border-primary/20">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Book Your Service</h3>
-                <BookingForm 
-                  serviceId={serviceInfo.id} 
+                <BookingForm
+                  serviceId={serviceInfo.id}
                   serviceName={serviceInfo.title}
                   onSubmitSuccess={() => {
                     setShowBookingForm(false);
@@ -171,7 +166,6 @@ const ServiceDetailsPage = () => {
                 />
               </div>
             )}
-            {/* Original: {isAuthenticated && showBookingForm && ( */}
           </div>
         </div>
       </div>

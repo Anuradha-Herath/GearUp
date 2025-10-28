@@ -88,6 +88,25 @@ const authService = {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
+
+  verifyEmail: async (code) => {
+    const url = `${API_BASE_URL}/auth/verify?code=${encodeURIComponent(code)}`;
+    const response = await fetch(url, { method: 'GET' });
+    // backend returns JSON {status, message}; ensure consistent shape
+    try {
+      const data = await response.json();
+      // normalize
+      return {
+        ok: response.ok,
+        status: data.status || (response.ok ? 'success' : 'error'),
+        message: data.message || (response.ok ? 'Account verified successfully!' : 'Invalid or expired verification link'),
+      };
+    } catch (e) {
+      // fallback if backend returns text
+      const text = await response.text();
+      return { ok: response.ok, status: response.ok ? 'success' : 'error', message: text };
+    }
+  },
 };
 
 export default authService;

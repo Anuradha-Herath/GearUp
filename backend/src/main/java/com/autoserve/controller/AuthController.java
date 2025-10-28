@@ -5,7 +5,6 @@ import com.autoserve.dto.Auth.JwtResponse;
 import com.autoserve.dto.Auth.SignupRequest;
 import com.autoserve.dto.Auth.ForgotPasswordRequest;
 import com.autoserve.dto.Auth.ResetPasswordRequest;
-import com.autoserve.entity.User;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.service.AuthService;
 import jakarta.validation.Valid;
@@ -42,15 +41,33 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public String verifyAccount(@RequestParam("code") String code) {
-        User user = userRepository.findByVerificationCode(code)
-                .orElseThrow(() -> new RuntimeException("Invalid verification code"));
+    public ResponseEntity<java.util.Map<String, Object>> verifyAccount(@RequestParam("code") String code) {
+        System.out.println("[VERIFY] Received verification request for code=" + code);
+        return userRepository.findByVerificationCode(code)
+                .map(user -> {
+                    user.setEnabled(true);
+                    user.setVerificationCode(null);
+                    userRepository.save(user);
 
-        user.setEnabled(true);
-        user.setVerificationCode(null);
-        userRepository.save(user);
+                    java.util.Map<String, Object> body = new java.util.HashMap<>();
+                    body.put("status", "success");
+                    body.put("message", "Account verified successfully!");
+                    System.out.println("[VERIFY] Account verified for user=" + user.getEmail());
+                    return ResponseEntity.ok(body);
+                })
+                .orElseGet(() -> {
+                    java.util.Map<String, Object> body = new java.util.HashMap<>();
+                    body.put("status", "error");
+                    body.put("message", "Invalid or expired verification link");
+                    System.out.println("[VERIFY] Invalid verification code=" + code);
+                    return ResponseEntity.badRequest().body(body);
+                });
+    }
 
-        return "Account verified successfully!";
+    @GetMapping("/verify/{code}")
+    public ResponseEntity<java.util.Map<String, Object>> verifyAccountPath(@PathVariable("code") String code) {
+        // support path-style verification links as well
+        return verifyAccount(code);
     }
 
     @PostMapping("/forgot-password")

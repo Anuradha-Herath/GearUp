@@ -15,10 +15,10 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/autoserve}
+    url: "${DATABASE_URL:jdbc:postgresql://localhost:5432/autoserve}"
     driver-class-name: org.postgresql.Driver
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:1234}
+    username: "${DATABASE_USERNAME:postgres}"
+    password: "${DATABASE_PASSWORD:1234}"
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,17 +26,19 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    
+
+app:
+  frontend-base-url: "${FRONTEND_BASE_URL:http://localhost:5173}"
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:86400000}
+  secret: "${JWT_SECRET}"
+  expiration: "${JWT_EXPIRATION:86400000}"
 
 sendgrid:
   api:
-    key: ${SENDGRID_API_KEY}
+    key: "${SENDGRID_API_KEY}"
   from:
-    email: ${SENDGRID_FROM_EMAIL:no.replyautoserve@gmail.com}
+    email: "${SENDGRID_FROM_EMAIL:no.replyautoserve@gmail.com}"
 
 ---
 spring:

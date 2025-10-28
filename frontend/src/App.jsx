@@ -19,7 +19,8 @@ import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import Services from './pages/customer/Services';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
-
+import FeedbackForm from './pages/customer/FeedbackForm';
+import MyFeedbacks from './pages/customer/Feedbacks';
 
 function App() {
   return (
@@ -49,6 +50,9 @@ function App() {
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />
         <Route path="/customer/my-bookings" element={<CustomerLayout><MyBookings /></CustomerLayout>} />
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />
+        <Route path="/customer/feedback-form" element={<CustomerLayout><FeedbackForm /></CustomerLayout>} />
+        <Route path="/customer/feedbacks" element={<CustomerLayout><MyFeedbacks /></CustomerLayout>} />
+        
       </Routes>
     </AuthProvider>
   );

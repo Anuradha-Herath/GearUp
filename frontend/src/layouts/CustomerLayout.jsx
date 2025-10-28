@@ -17,6 +17,7 @@ const CustomerLayout = ({ children }) => {
     { path: '/customer/services', label: 'Services' },
     { path: '/customer/my-bookings', label: 'My Bookings' },
     { path: '/customer/service-progress', label: 'Service Progress' },
+    { path: '/customer/feedbacks', label: 'Feedbacks' },
   ];
 
   return (

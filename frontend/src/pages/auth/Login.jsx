@@ -4,7 +4,7 @@ import authService from '../../services/authService';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -24,8 +24,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await authService.login(formData);
-      navigate('/customer/dashboard'); // Redirect to customer dashboard after successful login
+      const response = await authService.login(formData);
+      // Get user role from response or localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = user.role || response.role || 'USER';
+
+      // Redirect based on role
+      if (role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (role === 'EMPLOYEE') {
+        navigate('/employee/dashboard');
+      } else {
+        // Default to customer dashboard for USER role
+        navigate('/customer/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -59,18 +71,18 @@ const Login = () => {
           )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                placeholder="Enter your username"
-                value={formData.username}
+                placeholder="Enter your email"
+                value={formData.email}
                 onChange={handleChange}
               />
             </div>

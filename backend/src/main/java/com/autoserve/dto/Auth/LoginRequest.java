@@ -5,11 +5,20 @@ import lombok.Data;
 
 @Data
 public class LoginRequest {
-    @NotBlank(message = "Email or username is required")
-    private String username; // This field accepts both email and username
+    private String username; // Optional: username for login
+    
+    private String email; // Optional: email for login
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    // Helper method to get the login identifier (email or username)
+    public String getLoginIdentifier() {
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return username;
+    }
 
     // Manual getters and setters for compilation if Lombok fails
     public String getUsername() {
@@ -18,6 +27,14 @@ public class LoginRequest {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {

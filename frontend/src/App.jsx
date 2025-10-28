@@ -5,6 +5,7 @@ import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import AdminDashboard from './pages/admin/adminDashboard';
 import ManageEmployees from './pages/admin/ManageEmployees';
@@ -15,6 +16,7 @@ import AdminLayout from './layouts/AdminLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import Services from './pages/customer/Services';
@@ -31,8 +33,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+  <Route path="/verify" element={<Verify />} />
+
         {/* Employee Routes */}
-        <Route path="/employee" element={<EmployeeDashboard />} />
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         
         {/* Admin Routes */}
@@ -43,12 +46,17 @@ function App() {
         <Route path="/admin/reports" element={<AdminLayout><Reports /></AdminLayout>} />
         
         {/* Customer Routes */}
+
+        <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+
+    
         <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
         <Route path="/customer/dashboard" element={<CustomerLayout><CustomerDashboard /></CustomerLayout>} />
         <Route path="/customer/services" element={<CustomerLayout><Services /></CustomerLayout>} />
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />
         <Route path="/customer/my-bookings" element={<CustomerLayout><MyBookings /></CustomerLayout>} />
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />
+
       </Routes>
     </AuthProvider>
   );

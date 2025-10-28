@@ -1,0 +1,19 @@
+# Environment variables
+.env
+
+# Build artifacts
+target/
+*.class
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.swp

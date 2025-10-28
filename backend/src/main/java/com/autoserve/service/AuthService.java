@@ -10,6 +10,9 @@ import com.autoserve.entity.User;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.util.JwtUtil;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,12 +23,19 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final MailService mailService;
+
+    @Value("${app.frontend-base-url:http://localhost:5173}")
+    private String frontendBaseUrl;
+
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
 
     public AuthService(AuthenticationManager authenticationManager, JwtUtil jwtUtil, 
                        PasswordEncoder passwordEncoder, UserRepository userRepository, 
@@ -39,9 +49,18 @@ public class AuthService {
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            User user = userRepository.findByEmail(loginRequest.getUsername())
-                    .orElse(userRepository.findByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found")));
+            User user;
+
+            // Prefer email-based login when provided
+            if (loginRequest.getEmail() != null && !loginRequest.getEmail().isBlank()) {
+                user = userRepository.findByEmailIgnoreCase(loginRequest.getEmail())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+            } else if (loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()) {
+                user = userRepository.findByUsername(loginRequest.getUsername())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+            } else {
+                throw new RuntimeException("Email is required");
+            }
 
             if (!user.isEnabled()) {
                 throw new RuntimeException("Account not verified. Please check your email and verify your account.");
@@ -53,13 +72,13 @@ public class AuthService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtil.generateToken(authentication);
 
-            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail());
+            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
         } catch (BadCredentialsException e) {
-            throw new RuntimeException("Invalid email/username or password");
+            throw new RuntimeException("Invalid email or password");
         }
     }
 
-    public void signup(SignupRequest signupRequest) throws IOException {
+    public String signup(SignupRequest signupRequest) throws IOException {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
             throw new RuntimeException("Username is already taken!");
         }
@@ -81,15 +100,19 @@ public class AuthService {
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         user.setRole("USER");
-        user.setEnabled(false);
-        user.setVerificationCode(UUID.randomUUID().toString());
+    // Always require verification and generate a non-null code
+    user.setEnabled(false);
+    user.setVerificationCode(UUID.randomUUID().toString());
 
         userRepository.save(user);
 
-        String subject = "Welcome to AutoServe! 🚗";
+    String subject = "Welcome to AutoServe! 🚗";
 
         // HTML email content with clickable link
-        String htmlContent =
+    String verifyUrl = frontendBaseUrl + "/verify?code=" + user.getVerificationCode();
+    logger.info("Verification URL for {}: {}", user.getEmail(), verifyUrl);
+
+    String htmlContent =
                 "<!DOCTYPE html>" +
                 "<html><body style='font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;'>" +
                 "<div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; border: 1px solid #ddd;'>" +
@@ -98,7 +121,7 @@ public class AuthService {
                 "<p>We're excited to have you join the AutoServe community! 🎉</p>" +
                 "<p>To keep your account secure, please verify your email address by clicking the button below:</p>" +
                 "<p style='text-align: center; margin: 30px 0;'>" +
-                "<a href='http://localhost:8080/api/auth/verify?code=" + user.getVerificationCode() + "' " +
+                "<a href='" + verifyUrl + "' " +
                 "style='background-color: #1a73e8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'>Verify My Account</a></p>" +
                 "<p>Once verified, you'll be ready to explore all the features we offer.</p>" +
                 "<p>If you didn’t sign up for AutoServe, you can safely ignore this email.</p>" +
@@ -108,6 +131,8 @@ public class AuthService {
                 "</div></body></html>";
 
         mailService.sendVerificationEmail(user.getEmail(), subject, htmlContent);
+        
+        return "User registered successfully! Please check your email to verify your account before logging in.";
     }
 
     public void forgotPassword(String email) throws IOException {
@@ -125,7 +150,10 @@ public class AuthService {
         // Send password reset email
         String subject = "AutoServe - Password Reset Request";
 
-        String htmlContent =
+    String resetUrl = frontendBaseUrl + "/reset-password?token=" + resetToken;
+    logger.info("Password reset URL for {}: {}", user.getEmail(), resetUrl);
+
+    String htmlContent =
                 "<!DOCTYPE html>" +
                 "<html><body style='font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;'>" +
                 "<div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; border: 1px solid #ddd;'>" +
@@ -134,7 +162,7 @@ public class AuthService {
                 "<p>We received a request to reset your AutoServe account password.</p>" +
                 "<p>To reset your password, click the button below:</p>" +
                 "<p style='text-align: center; margin: 30px 0;'>" +
-                "<a href='http://localhost:3000/reset-password?token=" + resetToken + "' " +
+                "<a href='" + resetUrl + "' " +
                 "style='background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'>Reset My Password</a></p>" +
                 "<p><strong>Important:</strong> This link will expire in 24 hours for security reasons.</p>" +
                 "<p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>" +

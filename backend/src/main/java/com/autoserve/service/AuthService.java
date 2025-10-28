@@ -10,6 +10,7 @@ import com.autoserve.entity.User;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.util.JwtUtil;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +28,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final MailService mailService;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     public AuthService(AuthenticationManager authenticationManager, JwtUtil jwtUtil, 
                        PasswordEncoder passwordEncoder, UserRepository userRepository, 
                        MailService mailService) {
@@ -39,9 +43,18 @@ public class AuthService {
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            User user = userRepository.findByEmail(loginRequest.getUsername())
-                    .orElse(userRepository.findByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found")));
+            User user;
+
+            // Prefer email-based login when provided
+            if (loginRequest.getEmail() != null && !loginRequest.getEmail().isBlank()) {
+                user = userRepository.findByEmailIgnoreCase(loginRequest.getEmail())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+            } else if (loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()) {
+                user = userRepository.findByUsername(loginRequest.getUsername())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+            } else {
+                throw new RuntimeException("Email is required");
+            }
 
             if (!user.isEnabled()) {
                 throw new RuntimeException("Account not verified. Please check your email and verify your account.");
@@ -55,11 +68,11 @@ public class AuthService {
 
             return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail());
         } catch (BadCredentialsException e) {
-            throw new RuntimeException("Invalid email/username or password");
+            throw new RuntimeException("Invalid email or password");
         }
     }
 
-    public void signup(SignupRequest signupRequest) throws IOException {
+    public String signup(SignupRequest signupRequest) throws IOException {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
             throw new RuntimeException("Username is already taken!");
         }
@@ -81,8 +94,11 @@ public class AuthService {
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         user.setRole("USER");
-        user.setEnabled(false);
-        user.setVerificationCode(UUID.randomUUID().toString());
+        
+        // In dev mode, automatically enable accounts for easier testing
+        boolean isDevMode = "dev".equals(activeProfile);
+        user.setEnabled(isDevMode);
+        user.setVerificationCode(isDevMode ? null : UUID.randomUUID().toString());
 
         userRepository.save(user);
 
@@ -108,6 +124,12 @@ public class AuthService {
                 "</div></body></html>";
 
         mailService.sendVerificationEmail(user.getEmail(), subject, htmlContent);
+        
+        // Return appropriate message based on mode
+        if (isDevMode) {
+            return "User registered successfully! Your account is ready to use. You can now log in.";
+        }
+        return "User registered successfully! Please check your email to verify your account before logging in.";
     }
 
     public void forgotPassword(String email) throws IOException {

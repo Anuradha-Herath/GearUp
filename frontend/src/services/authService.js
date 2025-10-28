@@ -2,45 +2,77 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 const authService = {
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
+    try {
+      // Normalize payload to support backends expecting either `email` or `username`
+      const payload = {
+        username: credentials.username || credentials.email, // fallback for older backends
+        email: credentials.email || credentials.username,
+        password: credentials.password,
+      };
 
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await response.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: data.id,
-        username: data.username,
-        email: data.email
-      }));
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.text();
+          errorMessage = errorData || errorMessage;
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          role: data.role || 'USER'
+        }));
+      }
+      return data;
+    } catch (error) {
+      // If it's a network error, provide a more helpful message
+      if (error.message === 'Failed to fetch') {
+        throw new Error('Cannot connect to server. Please make sure the backend is running on http://localhost:8080');
+      }
+      throw error;
     }
-    return data;
   },
 
   signup: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'Signup failed');
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Signup failed');
+      }
+
+      return await response.text();
+    } catch (error) {
+      // If it's a network error, provide a more helpful message
+      if (error.message === 'Failed to fetch') {
+        throw new Error('Cannot connect to server. Please make sure the backend is running on http://localhost:8080');
+      }
+      throw error;
     }
-
-    return await response.text();
   },
 
   logout: async () => {

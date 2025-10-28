@@ -34,8 +34,8 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
         try {
-            authService.signup(signupRequest);
-            return ResponseEntity.ok("User registered successfully! Please check your email to verify your account before logging in.");
+            String message = authService.signup(signupRequest);
+            return ResponseEntity.ok(message);
         } catch (IOException e) {
             return ResponseEntity.badRequest().body("Registration failed: Unable to send verification email. " + e.getMessage());
         }

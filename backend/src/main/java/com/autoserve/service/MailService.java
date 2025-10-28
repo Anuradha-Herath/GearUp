@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Map;
 
 @Service
 public class MailService {
@@ -23,10 +22,23 @@ public class MailService {
     @Value("${sendgrid.from.email:no.replyautoserve@gmail.com}")
     private String fromEmail;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     /**
      * Send HTML email using SendGrid
      */
     public void sendVerificationEmail(String toEmail, String subject, String htmlBody) throws IOException {
+        // Skip actual email sending in dev mode
+        if ("dev".equals(activeProfile) && "dev-api-key".equals(apiKey)) {
+            logger.info("📧 [DEV MODE] Email simulation - Would send email:");
+            logger.info("   To: {}", toEmail);
+            logger.info("   Subject: {}", subject);
+            logger.info("   Body preview: {}", htmlBody.substring(0, Math.min(100, htmlBody.length())) + "...");
+            logger.info("   ✅ Email 'sent' successfully (simulated in dev mode)");
+            return;
+        }
+
         Email from = new Email(fromEmail, "AutoServe Team");
         Email to = new Email(toEmail);
 

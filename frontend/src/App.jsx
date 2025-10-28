@@ -18,11 +18,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Employee Routes */}
-        <Route path="/employee" element={<EmployeeDashboard />} />
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
 
         {/* Customer Routes */}
-        <Route path="/customer" element={<CustomerDashboard />} />
         <Route path="/customer/dashboard" element={<CustomerDashboard />} />
       </Routes>
     </AuthProvider>

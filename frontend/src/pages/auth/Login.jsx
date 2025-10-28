@@ -24,8 +24,20 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await authService.login(formData);
-      navigate('/'); // Redirect to home page after successful login
+      const response = await authService.login(formData);
+      // Get user role from response or localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const role = user.role || response.role || 'USER';
+
+      // Redirect based on role
+      if (role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (role === 'EMPLOYEE') {
+        navigate('/employee/dashboard');
+      } else {
+        // Default to customer dashboard for USER role
+        navigate('/customer/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

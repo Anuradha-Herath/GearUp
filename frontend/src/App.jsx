@@ -7,6 +7,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
   return (
@@ -24,6 +25,9 @@ function App() {
 
         {/* Customer Routes */}
         <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </AuthProvider>
   );

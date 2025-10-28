@@ -72,7 +72,7 @@ public class AuthService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtil.generateToken(authentication);
 
-            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail());
+            return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
         } catch (BadCredentialsException e) {
             throw new RuntimeException("Invalid email or password");
         }

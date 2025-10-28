@@ -25,7 +25,7 @@ const Login = () => {
 
     try {
       await authService.login(formData);
-      navigate('/'); // Redirect to home page after successful login
+      navigate('/customer/dashboard'); // Redirect to customer dashboard after successful login
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

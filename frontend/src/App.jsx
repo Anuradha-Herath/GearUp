@@ -16,7 +16,6 @@ import AdminLayout from './layouts/AdminLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import Services from './pages/customer/Services';

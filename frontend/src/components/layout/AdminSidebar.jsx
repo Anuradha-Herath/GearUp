@@ -13,7 +13,7 @@ const AdminSidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-navbar-color text-white min-h-screen">
+    <aside className="w-64 bg-navbar-color text-white fixed left-0 top-0 h-screen">
       <div className="p-4">
         <h2 className="text-xl font-bold mb-6 text-primary">Admin Menu</h2>
         <nav>

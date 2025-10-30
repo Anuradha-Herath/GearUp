@@ -14,7 +14,7 @@ const EmployeeSidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-navbar-color text-white min-h-screen">
+    <aside className="w-64 bg-navbar-color text-white fixed left-0 top-15 h-screen">
       <div className="p-4">
         <h2 className="text-xl font-bold mb-6 text-primary">Employee Menu</h2>
         <nav>

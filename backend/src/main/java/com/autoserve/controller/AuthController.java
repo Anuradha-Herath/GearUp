@@ -25,16 +25,52 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping("/login")
+    @PostMapping(value = "/login", produces = "application/json")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
+            System.out.println("[LOGIN_CONTROLLER] Starting login for: " + loginRequest.getEmail());
             JwtResponse response = authService.login(loginRequest);
-            return ResponseEntity.ok(response);
+            System.out.println("[LOGIN_CONTROLLER] AuthService returned response, about to return HTTP response");
+            
+            ResponseEntity<JwtResponse> httpResponse = ResponseEntity.ok(response);
+            System.out.println("[LOGIN_CONTROLLER] HTTP ResponseEntity created successfully");
+            return httpResponse;
+            
         } catch (RuntimeException e) {
-            System.out.println("[LOGIN] Error: " + e.getMessage());
+            System.out.println("[LOGIN_CONTROLLER] RuntimeException: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(java.util.Map.of(
                 "error", e.getMessage()
             ));
+        } catch (Exception e) {
+            System.out.println("[LOGIN_CONTROLLER] General Exception: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of(
+                "error", "Internal server error: " + e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<?> test() {
+        System.out.println("[TEST_CONTROLLER] Test endpoint called");
+        JwtResponse testResponse = new JwtResponse("test-token", 1L, "testuser", "test@example.com", "USER");
+        System.out.println("[TEST_CONTROLLER] Test response created: " + testResponse.toString());
+        return ResponseEntity.ok(testResponse);
+    }
+
+    @PostMapping(value = "/simple-login", produces = "application/json")
+    public ResponseEntity<?> simpleLogin(@RequestBody LoginRequest loginRequest) {
+        System.out.println("[SIMPLE_LOGIN] Simple login called for: " + loginRequest.getEmail());
+        try {
+            // Create a simple response without authentication
+            JwtResponse response = new JwtResponse("simple-test-token", 1L, "testuser", loginRequest.getEmail(), "USER");
+            System.out.println("[SIMPLE_LOGIN] Simple response created successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.out.println("[SIMPLE_LOGIN] Exception: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
         }
     }
 

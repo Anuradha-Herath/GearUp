@@ -1,6 +1,7 @@
 package com.autoserve.dto.Auth;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
 import lombok.Data;
 
 @Data
@@ -11,6 +12,12 @@ public class LoginRequest {
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    // Custom validation to ensure either email or username is provided
+    @AssertTrue(message = "Either email or username must be provided")
+    public boolean isValidLoginIdentifier() {
+        return (email != null && !email.isBlank()) || (username != null && !username.isBlank());
+    }
 
     // Helper method to get the login identifier (email or username)
     public String getLoginIdentifier() {

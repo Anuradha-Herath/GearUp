@@ -22,16 +22,20 @@ const authService = {
         // Try to get error message from response
         let errorMessage = 'Login failed';
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          // If JSON parsing fails, try text
-          try {
-            const textData = await response.text();
+          // Clone the response to read it multiple times if needed
+          const responseClone = response.clone();
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } else {
+            const textData = await responseClone.text();
             errorMessage = textData || errorMessage;
-          } catch (e2) {
-            console.error('Error parsing error response:', e2);
           }
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
         throw new Error(errorMessage);
       }

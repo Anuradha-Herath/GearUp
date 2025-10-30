@@ -57,22 +57,15 @@ public class AuthService {
             // Get the login identifier (email or username)
             String loginIdentifier = loginRequest.getLoginIdentifier();
             
+            logger.info("[LOGIN] Attempting login with identifier: {}", loginIdentifier);
+            
             if (loginIdentifier == null || loginIdentifier.isBlank()) {
                 throw new RuntimeException("Email or username is required");
             }
 
-            // Use the authentication manager to handle both users and employees
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginIdentifier, loginRequest.getPassword()));
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtUtil.generateToken(authentication);
-
-            // Now we need to determine if this is a user or employee to return the right response
+            // First check if user/employee exists before authentication
             String email = loginRequest.getEmail();
             String username = loginRequest.getUsername();
-
-            // First try to find in users table
             User user = null;
             Employee employee = null;
 
@@ -88,16 +81,55 @@ public class AuthService {
                 }
             }
 
-            // Return appropriate response based on what we found
-            if (user != null) {
-                return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
-            } else if (employee != null) {
-                return new JwtResponse(jwt, employee.getId(), employee.getUsername(), employee.getEmail(), employee.getRole().toUpperCase());
-            } else {
+            logger.info("[LOGIN] Found user: {}, Found employee: {}", user != null, employee != null);
+            
+            if (user == null && employee == null) {
+                logger.error("[LOGIN] No user or employee found with identifier: {}", loginIdentifier);
                 throw new RuntimeException("User not found");
             }
+
+            // Use the authentication manager to handle both users and employees
+            try {
+                System.out.println("[LOGIN_SERVICE] About to authenticate with: " + loginIdentifier);
+                Authentication authentication = authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(loginIdentifier, loginRequest.getPassword()));
+
+                System.out.println("[LOGIN_SERVICE] Authentication successful, setting context");
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                
+                System.out.println("[LOGIN_SERVICE] About to generate JWT token");
+                String jwt = jwtUtil.generateToken(authentication);
+                System.out.println("[LOGIN_SERVICE] JWT token generated successfully");
+
+                // Return appropriate response based on what we found
+                if (user != null) {
+                    logger.info("[LOGIN] Successful login for user: {}", user.getEmail());
+                    System.out.println("[LOGIN_SERVICE] Creating JwtResponse for user: " + user.getEmail());
+                    JwtResponse response = new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
+                    System.out.println("[LOGIN_SERVICE] JwtResponse created successfully");
+                    return response;
+                } else if (employee != null) {
+                    logger.info("[LOGIN] Successful login for employee: {}", employee.getEmail());
+                    System.out.println("[LOGIN_SERVICE] Creating JwtResponse for employee: " + employee.getEmail());
+                    JwtResponse response = new JwtResponse(jwt, employee.getId(), employee.getUsername(), employee.getEmail(), employee.getRole().toUpperCase());
+                    System.out.println("[LOGIN_SERVICE] JwtResponse created successfully");
+                    return response;
+                }
+            } catch (BadCredentialsException e) {
+                logger.error("[LOGIN] Bad credentials for identifier: {}", loginIdentifier);
+                System.out.println("[LOGIN_SERVICE] BadCredentialsException: " + e.getMessage());
+                throw new RuntimeException("Invalid email or password");
+            } catch (Exception e) {
+                logger.error("[LOGIN] Unexpected error during authentication: {}", e.getMessage());
+                System.out.println("[LOGIN_SERVICE] Unexpected exception: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Authentication failed: " + e.getMessage());
+            }
             
-        } catch (BadCredentialsException e) {
+            throw new RuntimeException("Login failed");
+            
+        } catch (Exception e) {
+            logger.error("[LOGIN] Error: {}", e.getMessage());
             throw new RuntimeException("Invalid email or password");
         }
     }

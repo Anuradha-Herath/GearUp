@@ -5,6 +5,7 @@ import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import AdminDashboard from './pages/admin/adminDashboard';
@@ -32,7 +33,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-  <Route path="/verify" element={<Verify />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify" element={<Verify />} />
 
         {/* Employee Routes */}
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />

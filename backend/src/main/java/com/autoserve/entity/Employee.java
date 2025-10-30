@@ -33,6 +33,10 @@ public class Employee {
     @Column(nullable = false)
     private String status = "Active";
 
+    // Password reset fields
+    private String resetPasswordToken;
+    private Long resetPasswordTokenExpiry;
+
     // Manual getters and setters for compilation if Lombok fails
     public Long getId() {
         return id;
@@ -104,5 +108,21 @@ public class Employee {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getResetPasswordToken() {
+        return resetPasswordToken;
+    }
+
+    public void setResetPasswordToken(String resetPasswordToken) {
+        this.resetPasswordToken = resetPasswordToken;
+    }
+
+    public Long getResetPasswordTokenExpiry() {
+        return resetPasswordTokenExpiry;
+    }
+
+    public void setResetPasswordTokenExpiry(Long resetPasswordTokenExpiry) {
+        this.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
     }
 }

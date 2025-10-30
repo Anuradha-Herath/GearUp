@@ -1,6 +1,7 @@
 package com.autoserve.service;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.autoserve.dto.Auth.LoginRequest;
@@ -53,71 +54,48 @@ public class AuthService {
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            // First try to find in users table
-            User user = null;
-            Employee employee = null;
+            // Get the login identifier (email or username)
+            String loginIdentifier = loginRequest.getLoginIdentifier();
             
+            if (loginIdentifier == null || loginIdentifier.isBlank()) {
+                throw new RuntimeException("Email or username is required");
+            }
+
+            // Use the authentication manager to handle both users and employees
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginIdentifier, loginRequest.getPassword()));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtil.generateToken(authentication);
+
+            // Now we need to determine if this is a user or employee to return the right response
             String email = loginRequest.getEmail();
             String username = loginRequest.getUsername();
 
+            // First try to find in users table
+            User user = null;
+            Employee employee = null;
+
             if (email != null && !email.isBlank()) {
-                // Try users table first
                 user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-                
-                // If not found in users, try employees table
                 if (user == null) {
                     employee = employeeRepository.findByEmail(email);
                 }
             } else if (username != null && !username.isBlank()) {
-                // Try users table first
                 user = userRepository.findByUsername(username).orElse(null);
-                
-                // If not found in users, try employees table
                 if (user == null) {
                     employee = employeeRepository.findByUsername(username);
                 }
-            } else {
-                throw new RuntimeException("Email is required");
             }
 
-            // If neither user nor employee found
-            if (user == null && employee == null) {
+            // Return appropriate response based on what we found
+            if (user != null) {
+                return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
+            } else if (employee != null) {
+                return new JwtResponse(jwt, employee.getId(), employee.getUsername(), employee.getEmail(), employee.getRole().toUpperCase());
+            } else {
                 throw new RuntimeException("User not found");
             }
-
-            // Handle user login
-            if (user != null) {
-                if (!user.isEnabled()) {
-                    throw new RuntimeException("Account not verified. Please check your email and verify your account.");
-                }
-
-                Authentication authentication = authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword()));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                String jwt = jwtUtil.generateToken(authentication);
-
-                return new JwtResponse(jwt, user.getId(), user.getUsername(), user.getEmail(), user.getRole());
-            }
-            
-            // Handle employee login
-            else if (employee != null) {
-                // For employees, we need to check password manually since they don't go through UserDetailsService
-                if (!passwordEncoder.matches(loginRequest.getPassword(), employee.getPassword())) {
-                    throw new RuntimeException("Invalid email or password");
-                }
-
-                // For employees, we'll generate JWT with employee info
-                // Create a temporary authentication object for JWT generation
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    employee.getUsername(), null, java.util.Collections.emptyList());
-
-                String jwt = jwtUtil.generateToken(authentication);
-
-                return new JwtResponse(jwt, employee.getId(), employee.getUsername(), employee.getEmail(), employee.getRole().toUpperCase());
-            }
-
-            throw new RuntimeException("Login failed");
             
         } catch (BadCredentialsException e) {
             throw new RuntimeException("Invalid email or password");
@@ -182,29 +160,50 @@ public class AuthService {
     }
 
     public void forgotPassword(String email) throws IOException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No account found with this email address"));
+        // Try to find user first
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        
+        // If user not found, try to find employee
+        Employee employee = null;
+        if (userOpt.isEmpty()) {
+            employee = employeeRepository.findByEmail(email);
+            if (employee == null) {
+                throw new RuntimeException("No account found with this email address");
+            }
+        }
 
         // Generate reset token
         String resetToken = UUID.randomUUID().toString();
         long tokenExpiry = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours from now
 
-        user.setResetPasswordToken(resetToken);
-        user.setResetPasswordTokenExpiry(tokenExpiry);
-        userRepository.save(user);
+        String userName;
+        if (userOpt.isPresent()) {
+            // Handle user password reset
+            User user = userOpt.get();
+            user.setResetPasswordToken(resetToken);
+            user.setResetPasswordTokenExpiry(tokenExpiry);
+            userRepository.save(user);
+            userName = user.getUsername();
+        } else {
+            // Handle employee password reset
+            employee.setResetPasswordToken(resetToken);
+            employee.setResetPasswordTokenExpiry(tokenExpiry);
+            employeeRepository.save(employee);
+            userName = employee.getName();
+        }
 
         // Send password reset email
         String subject = "AutoServe - Password Reset Request";
 
     String resetUrl = frontendBaseUrl + "/reset-password?token=" + resetToken;
-    logger.info("Password reset URL for {}: {}", user.getEmail(), resetUrl);
+    logger.info("Password reset URL for {}: {}", email, resetUrl);
 
     String htmlContent =
                 "<!DOCTYPE html>" +
                 "<html><body style='font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;'>" +
                 "<div style='max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 10px; border: 1px solid #ddd;'>" +
                 "<h2 style='color: #333;'>Password Reset Request 🔒</h2>" +
-                "<p>Hello <strong>" + user.getUsername() + "</strong>,</p>" +
+                "<p>Hello <strong>" + userName + "</strong>,</p>" +
                 "<p>We received a request to reset your AutoServe account password.</p>" +
                 "<p>To reset your password, click the button below:</p>" +
                 "<p style='text-align: center; margin: 30px 0;'>" +
@@ -217,23 +216,48 @@ public class AuthService {
                 "<p style='font-size: 12px; color: #777;'>This is an automated message from AutoServe. Please do not reply.</p>" +
                 "</div></body></html>";
 
-        mailService.sendVerificationEmail(user.getEmail(), subject, htmlContent);
+        mailService.sendVerificationEmail(email, subject, htmlContent);
     }
 
     public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByResetPasswordToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+        // Try to find user with token first
+        Optional<User> userOpt = userRepository.findByResetPasswordToken(token);
+        
+        if (userOpt.isPresent()) {
+            // Handle user password reset
+            User user = userOpt.get();
+            
+            // Check if token is expired
+            if (user.getResetPasswordTokenExpiry() == null || 
+                System.currentTimeMillis() > user.getResetPasswordTokenExpiry()) {
+                throw new RuntimeException("Reset token has expired. Please request a new password reset.");
+            }
 
-        // Check if token is expired
-        if (user.getResetPasswordTokenExpiry() == null || 
-            System.currentTimeMillis() > user.getResetPasswordTokenExpiry()) {
-            throw new RuntimeException("Reset token has expired. Please request a new password reset.");
+            // Update password and clear reset token
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setResetPasswordToken(null);
+            user.setResetPasswordTokenExpiry(null);
+            userRepository.save(user);
+        } else {
+            // Try to find employee with token
+            Optional<Employee> employeeOpt = employeeRepository.findByResetPasswordToken(token);
+            if (employeeOpt.isEmpty()) {
+                throw new RuntimeException("Invalid or expired reset token");
+            }
+            
+            Employee employee = employeeOpt.get();
+            
+            // Check if token is expired
+            if (employee.getResetPasswordTokenExpiry() == null || 
+                System.currentTimeMillis() > employee.getResetPasswordTokenExpiry()) {
+                throw new RuntimeException("Reset token has expired. Please request a new password reset.");
+            }
+
+            // Update password and clear reset token
+            employee.setPassword(passwordEncoder.encode(newPassword));
+            employee.setResetPasswordToken(null);
+            employee.setResetPasswordTokenExpiry(null);
+            employeeRepository.save(employee);
         }
-
-        // Update password and clear reset token
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setResetPasswordToken(null);
-        user.setResetPasswordTokenExpiry(null);
-        userRepository.save(user);
     }
 }

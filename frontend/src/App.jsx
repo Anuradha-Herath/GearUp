@@ -25,6 +25,7 @@ import CustomerDashboard from './pages/customer/CustomerDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
+import MyVehicles from './pages/customer/MyVehicles';
 import Services from './pages/customer/Services';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
 
@@ -60,6 +61,7 @@ function App() {
         {/* Customer Routes */}
         <Route path="/customer/dashboard" element={<CustomerLayout><CustomerDashboard /></CustomerLayout>} />
         <Route path="/customer/services" element={<CustomerLayout><Services /></CustomerLayout>} />
+        <Route path="/customer/my-vehicles" element={<CustomerLayout><MyVehicles /></CustomerLayout>} />
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />
         <Route path="/customer/my-bookings" element={<CustomerLayout><MyBookings /></CustomerLayout>} />
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />

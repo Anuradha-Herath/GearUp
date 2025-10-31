@@ -9,6 +9,7 @@ const AdminSidebar = () => {
     { path: '/admin/employees', label: 'Manage Employees' },
     { path: '/admin/customers', label: 'Manage Customers' },
     { path: '/admin/appointments', label: 'Appointments' },
+    { path: '/admin/services', label: 'Manage Services' },
     { path: '/admin/reports', label: 'Reports' },
   ];
 

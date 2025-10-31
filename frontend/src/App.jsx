@@ -15,6 +15,7 @@ import Schedule from './pages/employee/Schedule';
 import ManageEmployees from './pages/admin/ManageEmployees';
 import ManageCustomers from './pages/admin/ManageCustomers';
 import ManageAppointments from './pages/admin/ManageAppointments';
+import ManageServices from './pages/admin/ManageServices';
 import Reports from './pages/admin/Reports';
 import AdminLayout from './layouts/AdminLayout';
 import EmployeeLayout from './layouts/EmployeeLayout';
@@ -53,6 +54,7 @@ function App() {
         <Route path="/admin/employees" element={<AdminLayout><ManageEmployees /></AdminLayout>} />
         <Route path="/admin/customers" element={<AdminLayout><ManageCustomers /></AdminLayout>} />
         <Route path="/admin/appointments" element={<AdminLayout><ManageAppointments /></AdminLayout>} />
+        <Route path="/admin/services" element={<AdminLayout><ManageServices /></AdminLayout>} />
         <Route path="/admin/reports" element={<AdminLayout><Reports /></AdminLayout>} />
         
         {/* Customer Routes */}

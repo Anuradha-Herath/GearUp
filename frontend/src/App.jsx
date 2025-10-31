@@ -7,11 +7,17 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
+import ManageOrders from './pages/employee/ManageOrders';
+import History from './pages/employee/History';
+import Customers from './pages/employee/Customers';
+import EmployeeServices from './pages/employee/Services';
+import Schedule from './pages/employee/Schedule';
 import ManageEmployees from './pages/admin/ManageEmployees';
 import ManageCustomers from './pages/admin/ManageCustomers';
 import ManageAppointments from './pages/admin/ManageAppointments';
 import Reports from './pages/admin/Reports';
 import AdminLayout from './layouts/AdminLayout';
+import EmployeeLayout from './layouts/EmployeeLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
@@ -35,7 +41,12 @@ function App() {
   <Route path="/verify" element={<Verify />} />
 
         {/* Employee Routes */}
-        <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+        <Route path="/employee/dashboard" element={<EmployeeLayout><EmployeeDashboard /></EmployeeLayout>} />
+        <Route path="/employee/manage-orders" element={<EmployeeLayout><ManageOrders /></EmployeeLayout>} />
+        <Route path="/employee/history" element={<EmployeeLayout><History /></EmployeeLayout>} />
+        <Route path="/employee/customers" element={<EmployeeLayout><Customers /></EmployeeLayout>} />
+        <Route path="/employee/services" element={<EmployeeLayout><EmployeeServices /></EmployeeLayout>} />
+        <Route path="/employee/schedule" element={<EmployeeLayout><Schedule /></EmployeeLayout>} />
         
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
@@ -45,11 +56,6 @@ function App() {
         <Route path="/admin/reports" element={<AdminLayout><Reports /></AdminLayout>} />
         
         {/* Customer Routes */}
-
-        <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-
-    
-        <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
         <Route path="/customer/dashboard" element={<CustomerLayout><CustomerDashboard /></CustomerLayout>} />
         <Route path="/customer/services" element={<CustomerLayout><Services /></CustomerLayout>} />
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />

@@ -2,7 +2,8 @@ package com.autoserve.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Data
@@ -12,55 +13,36 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime dateTime;
-    private String status;
+    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = false)
+    private User customer;
 
     @ManyToOne
-    @JoinColumn(name = "customer_id")
-    private Customer customer;
-
-    @ManyToOne
-    @JoinColumn(name = "vehicle_id")
+    @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
 
-    // Manual getters and setters for compilation if Lombok fails
-    public Long getId() {
-        return id;
-    }
+    @ManyToOne
+    @JoinColumn(name = "service_id", nullable = false)
+    private Service service;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    @ManyToOne
+    @JoinColumn(name = "employee_id")
+    private User employee; // assigned mechanic
 
-    public LocalDateTime getDateTime() {
-        return dateTime;
-    }
+    @Column(nullable = false)
+    private LocalDate date;
 
-    public void setDateTime(LocalDateTime dateTime) {
-        this.dateTime = dateTime;
-    }
+    @Column(nullable = false)
+    private LocalTime time;
 
-    public String getStatus() {
-        return status;
-    }
+    @Column(columnDefinition = "TEXT")
+    private String additionalNote;
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    @Column(nullable = false)
+    private String status = "REQUESTED"; // REQUESTED, CONFIRMED, PENDING, ONGOING, FINISHED, CANCELLED
 
-    public Customer getCustomer() {
-        return customer;
-    }
+    private double estimatedCost;
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
-
-    public Vehicle getVehicle() {
-        return vehicle;
-    }
-
-    public void setVehicle(Vehicle vehicle) {
-        this.vehicle = vehicle;
-    }
+    @Column(columnDefinition = "TEXT")
+    private String serviceNotes;
 }

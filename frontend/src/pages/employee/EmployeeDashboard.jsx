@@ -6,6 +6,7 @@ import CustomerDetails from '../../components/employee/CustomerDetails';
 import VehicleRecords from '../../components/employee/VehicleRecords';
 import ServiceList from '../../components/employee/ServiceList';
 import ScheduleAppointments from '../../components/employee/ScheduleAppointments';
+import FeedBacks from '../../components/employee/FeedBacks'; // Added
 
 const EmployeeDashboard = () => {
   const [activeTab, setActiveTab] = useState('confirm');
@@ -18,6 +19,7 @@ const EmployeeDashboard = () => {
     { id: 'vehicles', label: 'Vehicles', icon: '🚗' },
     { id: 'services', label: 'Services', icon: '🧰' },
     { id: 'schedule', label: 'Schedule', icon: '📅' },
+    { id: 'appointments', label: 'Feedback', icon: '💬' }
   ];
 
   const renderContent = () => {
@@ -36,8 +38,11 @@ const EmployeeDashboard = () => {
         return <ServiceList />;
       case 'schedule':
         return <ScheduleAppointments />;
+      case 'appointments': // Added
+        return <FeedBacks />;
       default:
         return <ConfirmOrders />;
+        
     }
   };
 

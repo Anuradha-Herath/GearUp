@@ -23,10 +23,10 @@ public class User {
     @Column(name = "phone_number")
     private String phoneNumber;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean isActive = true;
 
-    private String role = "USER";
+    private String role = "CUSTOMER";
 
     private String verificationCode;
     private boolean enabled = false; // account active only after verification

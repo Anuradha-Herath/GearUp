@@ -5,7 +5,6 @@ import com.autoserve.service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,13 +18,11 @@ public class AdminServiceController {
     private final ServiceService serviceService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Service>> getAllServices() {
         return ResponseEntity.ok(serviceService.getAllServices());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Service> getServiceById(@PathVariable Long id) {
         return serviceService.getServiceById(id)
                 .map(ResponseEntity::ok)
@@ -33,14 +30,12 @@ public class AdminServiceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Service> createService(@RequestBody Service service) {
         Service createdService = serviceService.createService(service);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdService);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Service> updateService(@PathVariable Long id, @RequestBody Service service) {
         try {
             Service updatedService = serviceService.updateService(id, service);
@@ -51,7 +46,6 @@ public class AdminServiceController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         try {
             serviceService.deleteService(id);

@@ -11,40 +11,22 @@ public class Service {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-    private String description;
-    private Double price;
+    @Column(nullable = false)
+    private String title;
 
-    // Manual getters and setters for compilation if Lombok fails
-    public Long getId() {
-        return id;
-    }
+    @Column(columnDefinition = "TEXT")
+    private String shortDescription;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private String image;
 
-    public String getName() {
-        return name;
-    }
+    @Column(columnDefinition = "TEXT")
+    private String includedSubservices;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    private String estimatedDuration;
 
-    public String getDescription() {
-        return description;
-    }
+    @Column(nullable = false)
+    private double estimatedPrice;
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Double getPrice() {
-        return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
-    }
+    @Column(nullable = false)
+    private int maxPerDay; // booking limit per day
 }

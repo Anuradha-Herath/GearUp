@@ -15,6 +15,7 @@ import Schedule from './pages/employee/Schedule';
 import ManageEmployees from './pages/admin/ManageEmployees';
 import ManageCustomers from './pages/admin/ManageCustomers';
 import ManageAppointments from './pages/admin/ManageAppointments';
+import ManageServices from './pages/admin/ManageServices';
 import Reports from './pages/admin/Reports';
 import AdminLayout from './layouts/AdminLayout';
 import EmployeeLayout from './layouts/EmployeeLayout';
@@ -24,6 +25,7 @@ import CustomerDashboard from './pages/customer/CustomerDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
+import MyVehicles from './pages/customer/MyVehicles';
 import Services from './pages/customer/Services';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
 
@@ -53,16 +55,13 @@ function App() {
         <Route path="/admin/employees" element={<AdminLayout><ManageEmployees /></AdminLayout>} />
         <Route path="/admin/customers" element={<AdminLayout><ManageCustomers /></AdminLayout>} />
         <Route path="/admin/appointments" element={<AdminLayout><ManageAppointments /></AdminLayout>} />
+        <Route path="/admin/services" element={<AdminLayout><ManageServices /></AdminLayout>} />
         <Route path="/admin/reports" element={<AdminLayout><Reports /></AdminLayout>} />
         
         {/* Customer Routes */}
-
-        <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-
-    
-        <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
         <Route path="/customer/dashboard" element={<CustomerLayout><CustomerDashboard /></CustomerLayout>} />
         <Route path="/customer/services" element={<CustomerLayout><Services /></CustomerLayout>} />
+        <Route path="/customer/my-vehicles" element={<CustomerLayout><MyVehicles /></CustomerLayout>} />
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />
         <Route path="/customer/my-bookings" element={<CustomerLayout><MyBookings /></CustomerLayout>} />
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />

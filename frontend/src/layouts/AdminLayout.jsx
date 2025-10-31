@@ -10,7 +10,7 @@ const AdminLayout = ({ children }) => {
       <AdminNavbar />
       <div className="flex flex-1">
         <AdminSidebar />
-        <main className="flex-1 p-6 bg-white">
+        <main className="flex-1 p-6 bg-white ml-64">
           {children}
         </main>
       </div>

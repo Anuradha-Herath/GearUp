@@ -20,7 +20,11 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-  
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     private String role = "USER";
 
@@ -102,5 +106,21 @@ public class User {
 
     public void setResetPasswordTokenExpiry(Long resetPasswordTokenExpiry) {
         this.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 }

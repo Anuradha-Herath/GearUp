@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import LandingPage from './pages/LandingPage';
 import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
@@ -33,7 +34,8 @@ import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
 function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <ToastProvider>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/service/:serviceId" element={<ServiceDetailsWrapper />} />
@@ -67,6 +69,7 @@ function App() {
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />
 
       </Routes>
+      </ToastProvider>
     </AuthProvider>
   );
 }

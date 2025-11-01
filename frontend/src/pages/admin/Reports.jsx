@@ -57,6 +57,9 @@ const Reports = () => {
         case 'financial':
           data = generateFinancialReport();
           break;
+        case 'feedbacks':
+          data = generateFeedbackReport();
+          break;
         default:
           data = generateAppointmentReport();
       }
@@ -242,6 +245,54 @@ const Reports = () => {
     };
   };
 
+  const generateFeedbackReport = () => {
+    // Sample distribution by star rating
+    const ratingDistribution = { 5: 42, 4: 28, 3: 16, 2: 7, 1: 3 };
+
+    const totalFeedbacks = Object.values(ratingDistribution).reduce((s, v) => s + v, 0);
+    const average =
+      Object.entries(ratingDistribution).reduce((s, [star, cnt]) => s + Number(star) * cnt, 0) / totalFeedbacks;
+
+    return {
+      summary: {
+        totalFeedbacks,
+        averageRating: `${average.toFixed(2)} / 5`,
+        satisfactionRate: `${(((ratingDistribution[5] + ratingDistribution[4]) / totalFeedbacks) * 100).toFixed(1)}%`,
+      },
+      chartData: {
+        labels: ['5★', '4★', '3★', '2★', '1★'],
+        datasets: [
+          {
+            label: 'Feedbacks',
+            data: [
+              ratingDistribution[5],
+              ratingDistribution[4],
+              ratingDistribution[3],
+              ratingDistribution[2],
+              ratingDistribution[1],
+            ],
+            backgroundColor: [
+              'rgba(34,197,94,0.8)',
+              'rgba(132,204,22,0.8)',
+              'rgba(251,191,36,0.8)',
+              'rgba(249,115,22,0.8)',
+              'rgba(239,68,68,0.8)',
+            ],
+            borderColor: [
+              'rgba(34,197,94,1)',
+              'rgba(132,204,22,1)',
+              'rgba(251,191,36,1)',
+              'rgba(249,115,22,1)',
+              'rgba(239,68,68,1)',
+            ],
+            borderWidth: 2,
+          },
+        ],
+      },
+      chartType: 'doughnut',
+    };
+  };
+
   const exportReport = (format) => {
     // Simulate export functionality
     alert(`Exporting ${reportType} report as ${format.toUpperCase()}`);
@@ -309,6 +360,7 @@ const Reports = () => {
               <option value="customers">Customer Report</option>
               <option value="employees">Employee Performance</option>
               <option value="financial">Financial Report</option>
+              <option value="feedbacks">Feedback Report</option>
             </select>
           </div>
 

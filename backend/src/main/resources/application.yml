@@ -1,7 +1,10 @@
 
 spring:
   profiles:
-    active: test
+    active: dev
+  config:
+    # Load variables from backend/.env if present (no error if missing)
+    import: optional:file:backend/.env[.properties]
 
 server:
   port: 8080
@@ -12,27 +15,31 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:h2:mem:gearupdb
-    username: sa
-    password: 
-    driver-class-name: org.h2.Driver
+
+
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-  h2:
-    console:
-      enabled: true
+      ddl-auto: update
+    show-sql: true
+
+  websocket:
+    enabled: true
 
 jwt:
-  secret: devSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongForDevelopment
-  expiration: 86400000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
 
 sendgrid:
   api:
-    key: SG.test-api-key
+    key: ${SENDGRID_API_KEY}
   from:
-    email: dev@gearup.com
+    email: ${SENDGRID_FROM_EMAIL}
+
 
 ---
 spring:
@@ -69,10 +76,6 @@ spring:
     properties:
       hibernate:
         globally_quoted_identifiers: true
-
-jwt:
-  secret: testSecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLong
-  expiration: 86400000
 
 sendgrid:
   api:

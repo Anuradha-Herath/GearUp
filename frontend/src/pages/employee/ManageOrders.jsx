@@ -1,72 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
 
 const ManageOrders = () => {
-  // Mock data for confirmed orders
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      vehicleCompany: 'BMW',
-      model: 'X5',
-      year: 2021,
-      vehicleNumber: 'BMW-7890',
-      serviceCategory: 'Engine Diagnostics',
-      date: '2025-11-03',
-      time: '9:30 AM',
-      estimatedPrice: 250.00,
-      status: 'confirmed',
-      customerName: 'Robert Brown',
-      customerPhone: '+1-234-567-8904'
-    },
-    {
-      id: 2,
-      vehicleCompany: 'Mercedes',
-      model: 'C-Class',
-      year: 2020,
-      vehicleNumber: 'MER-4567',
-      serviceCategory: 'Transmission Service',
-      date: '2025-11-04',
-      time: '1:00 PM',
-      estimatedPrice: 350.00,
-      status: 'started',
-      customerName: 'Emily Davis',
-      customerPhone: '+1-234-567-8905'
-    },
-    {
-      id: 3,
-      vehicleCompany: 'Audi',
-      model: 'A4',
-      year: 2019,
-      vehicleNumber: 'AUD-1234',
-      serviceCategory: 'AC Repair',
-      date: '2025-11-02',
-      time: '3:00 PM',
-      estimatedPrice: 180.00,
-      status: 'ongoing',
-      customerName: 'David Wilson',
-      customerPhone: '+1-234-567-8906'
-    },
-    {
-      id: 4,
-      vehicleCompany: 'Lexus',
-      model: 'RX 350',
-      year: 2022,
-      vehicleNumber: 'LEX-8901',
-      serviceCategory: 'Wheel Alignment',
-      date: '2025-11-01',
-      time: '10:00 AM',
-      estimatedPrice: 90.00,
-      status: 'confirmed',
-      customerName: 'Lisa Anderson',
-      customerPhone: '+1-234-567-8907'
-    }
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const handleStatusChange = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus }
-        : order
-    ));
+  // Fetch confirmed appointments from backend
+  useEffect(() => {
+    fetchConfirmedAppointments();
+  }, []);
+
+  const fetchConfirmedAppointments = async () => {
+    try {
+      setLoading(true);
+      // Get all appointments, not just confirmed ones, so we can manage all statuses
+      const appointments = await employeeService.getAllAppointments();
+      
+      // Filter to only show confirmed and subsequent statuses
+      const relevantAppointments = appointments.filter(appointment => 
+        ['CONFIRMED', 'PENDING', 'ONGOING', 'FINISHED'].includes(appointment.status.toUpperCase())
+      );
+      
+      // Transform the data to match the expected format
+      const transformedOrders = relevantAppointments.map(appointment => ({
+        id: appointment.id,
+        vehicleCompany: appointment.vehicle?.company || 'Unknown',
+        model: appointment.vehicle?.model || 'Unknown',
+        year: appointment.vehicle?.year || 'Unknown',
+        vehicleNumber: appointment.vehicle?.vehicleNumber || 'Unknown',
+        serviceCategory: appointment.service?.title || 'Unknown Service',
+        date: appointment.date,
+        time: appointment.time,
+        estimatedPrice: appointment.estimatedCost || appointment.service?.estimatedPrice || 0,
+        status: appointment.status.toLowerCase(),
+        customerName: appointment.customer?.name || appointment.customer?.username || 'Unknown Customer',
+        customerPhone: appointment.customer?.phone || 'Not provided',
+        additionalNote: appointment.additionalNote || '',
+        serviceDescription: appointment.service?.shortDescription || '',
+        assignedEmployee: appointment.employee?.name || appointment.employee?.username || 'Not Assigned'
+      }));
+
+      setOrders(transformedOrders);
+    } catch (err) {
+      console.error('Error fetching confirmed appointments:', err);
+      setError('Failed to load confirmed appointments. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      await employeeService.updateAppointmentStatus(orderId, newStatus.toUpperCase());
+      
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: newStatus }
+          : order
+      ));
+      
+      alert(`Order status updated to ${newStatus} successfully!`);
+    } catch (err) {
+      console.error('Error updating appointment status:', err);
+      alert('Failed to update order status. Please try again.');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -89,7 +89,55 @@ const ManageOrders = () => {
     return statusFlow[currentStatus] || [];
   };
 
-  const confirmedOrders = orders.filter(o => ['confirmed', 'started', 'ongoing'].includes(o.status));
+  const filteredOrders = orders.filter(order => {
+    if (statusFilter === 'all') return true;
+    return order.status === statusFilter;
+  });
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Orders</h1>
+          <p className="text-gray-600 mt-2">Track and update the status of confirmed orders</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading confirmed appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Orders</h1>
+          <p className="text-gray-600 mt-2">Track and update the status of confirmed orders</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <button 
+                onClick={fetchConfirmedAppointments}
+                className="mt-2 text-sm text-red-800 underline hover:no-underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,6 +145,26 @@ const ManageOrders = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Manage Orders</h1>
         <p className="text-gray-600 mt-2">Track and update the status of confirmed orders</p>
+      </div>
+
+      {/* Status Filter */}
+      <div className="bg-white p-4 rounded-lg shadow-md border">
+        <div className="flex gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="all">All Orders</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="started">Started</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="finished">Finished</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Stats */}
@@ -137,7 +205,7 @@ const ManageOrders = () => {
       </div>
 
       {/* Orders Grid */}
-      {confirmedOrders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <div className="text-6xl mb-4">📋</div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No Active Orders</h3>
@@ -145,7 +213,7 @@ const ManageOrders = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {confirmedOrders.map((order) => (
+          {filteredOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
               {/* Card Header */}
               <div className="bg-primary/10 p-4 border-b border-gray-200">

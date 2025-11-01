@@ -42,6 +42,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
+                .requestMatchers("/api/customer/**").permitAll() // Temporarily allow customer endpoints for local dev/testing
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

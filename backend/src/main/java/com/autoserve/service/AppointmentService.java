@@ -103,4 +103,31 @@ public class AppointmentService {
     public List<Appointment> getAllAppointments() {
         return appointmentRepository.findAll();
     }
+
+    // Employee-specific methods
+    public List<Appointment> getPendingAppointments() {
+        return appointmentRepository.findByStatus("REQUESTED");
+    }
+
+    public List<Appointment> getConfirmedAppointments() {
+        return appointmentRepository.findByStatus("CONFIRMED");
+    }
+
+    public Appointment updateAppointmentStatus(Long id, String status) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + id));
+        
+        // Validate status
+        if (!isValidStatus(status)) {
+            throw new RuntimeException("Invalid status: " + status);
+        }
+        
+        appointment.setStatus(status.toUpperCase());
+        return appointmentRepository.save(appointment);
+    }
+
+    private boolean isValidStatus(String status) {
+        return List.of("REQUESTED", "CONFIRMED", "PENDING", "ONGOING", "FINISHED", "CANCELLED")
+                .contains(status.toUpperCase());
+    }
 }

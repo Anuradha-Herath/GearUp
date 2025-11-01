@@ -5,6 +5,7 @@ import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import ManageOrders from './pages/employee/ManageOrders';
@@ -21,7 +22,6 @@ import EmployeeLayout from './layouts/EmployeeLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import Services from './pages/customer/Services';
@@ -38,7 +38,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-  <Route path="/verify" element={<Verify />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify" element={<Verify />} />
 
         {/* Employee Routes */}
         <Route path="/employee/dashboard" element={<EmployeeLayout><EmployeeDashboard /></EmployeeLayout>} />

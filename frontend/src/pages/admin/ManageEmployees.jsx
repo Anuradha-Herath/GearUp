@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
 
 const ManageEmployees = () => {
   const [employees, setEmployees] = useState([]);
@@ -13,17 +14,30 @@ const ManageEmployees = () => {
     department: ''
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  // Dummy data for employees
+  // Load employees from backend
   useEffect(() => {
-    const dummyEmployees = [
-      { id: 1, name: 'John Doe', email: 'john@example.com', username: 'johndoe', role: 'Mechanic', phone: '123-456-7890', department: 'Service', status: 'Active' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com', username: 'janesmith', role: 'Receptionist', phone: '123-456-7891', department: 'Front Desk', status: 'Active' },
-      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', username: 'bobjohnson', role: 'Manager', phone: '123-456-7892', department: 'Management', status: 'Inactive' },
-      { id: 4, name: 'Alice Brown', email: 'alice@example.com', username: 'alicebrown', role: 'Technician', phone: '123-456-7893', department: 'Service', status: 'Active' },
-    ];
-    setEmployees(dummyEmployees);
+    loadEmployees();
   }, []);
+
+  const loadEmployees = async () => {
+    try {
+      setLoading(true);
+      const employeeData = await employeeService.getAllEmployees();
+      setEmployees(employeeData);
+    } catch (error) {
+      console.error('Error loading employees:', error);
+      // Keep dummy data as fallback for now
+      const dummyEmployees = [
+        { id: 1, name: 'John Doe', email: 'john@example.com', username: 'johndoe', role: 'Mechanic', phone: '123-456-7890', department: 'Service', status: 'Active' },
+        { id: 2, name: 'Jane Smith', email: 'jane@example.com', username: 'janesmith', role: 'Receptionist', phone: '123-456-7891', department: 'Front Desk', status: 'Active' },
+      ];
+      setEmployees(dummyEmployees);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -57,47 +71,79 @@ const ManageEmployees = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    // Create new employee
-    const newEmployee = {
-      id: employees.length + 1,
-      ...formData,
-      status: 'Active'
-    };
-
-    setEmployees(prev => [...prev, newEmployee]);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      username: '',
-      password: '',
-      role: 'employee',
-      phone: '',
-      department: ''
-    });
-    
-    setShowForm(false);
-    alert('Employee created successfully!');
+    try {
+      setLoading(true);
+      
+      // Call backend to create employee
+      const response = await employeeService.createEmployee(formData);
+      
+      // Add new employee to local state
+      setEmployees(prev => [...prev, response.employee]);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        username: '',
+        password: '',
+        role: 'employee',
+        phone: '',
+        department: ''
+      });
+      
+      setShowForm(false);
+      alert('Employee created successfully!');
+      
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      // Display error message
+      if (error.message.includes('Email is already taken')) {
+        setErrors({ email: 'Email is already taken' });
+      } else if (error.message.includes('Username is already taken')) {
+        setErrors({ username: 'Username is already taken' });
+      } else {
+        alert('Error creating employee: ' + error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleEmployeeStatus = (id) => {
-    setEmployees(prev => prev.map(emp => 
-      emp.id === id 
-        ? { ...emp, status: emp.status === 'Active' ? 'Inactive' : 'Active' }
-        : emp
-    ));
+  const toggleEmployeeStatus = async (id) => {
+    try {
+      const employee = employees.find(emp => emp.id === id);
+      const newStatus = employee.status === 'Active' ? 'Inactive' : 'Active';
+      
+      await employeeService.updateEmployeeStatus(id, newStatus);
+      
+      setEmployees(prev => prev.map(emp => 
+        emp.id === id 
+          ? { ...emp, status: newStatus }
+          : emp
+      ));
+      
+      alert('Employee status updated successfully!');
+    } catch (error) {
+      console.error('Error updating employee status:', error);
+      alert('Error updating employee status: ' + error.message);
+    }
   };
 
-  const deleteEmployee = (id) => {
+  const deleteEmployee = async (id) => {
     if (window.confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
-      setEmployees(prev => prev.filter(emp => emp.id !== id));
-      alert('Employee deleted successfully!');
+      try {
+        await employeeService.deleteEmployee(id);
+        setEmployees(prev => prev.filter(emp => emp.id !== id));
+        alert('Employee deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        alert('Error deleting employee: ' + error.message);
+      }
     }
   };
 
@@ -229,9 +275,10 @@ const ManageEmployees = () => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-[#7A85C1] text-white px-6 py-2 rounded-lg hover:bg-[#6a75a8] transition-colors"
+                disabled={loading}
+                className="bg-[#7A85C1] text-white px-6 py-2 rounded-lg hover:bg-[#6a75a8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Employee
+                {loading ? 'Creating...' : 'Create Employee'}
               </button>
               <button
                 type="button"

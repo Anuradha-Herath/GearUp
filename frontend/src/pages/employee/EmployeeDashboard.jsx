@@ -1,61 +1,77 @@
-import React, { useState } from 'react';
-import ConfirmOrders from '../../components/employee/ConfirmOrders';
-import ManageOrders from '../../components/employee/ManageOrders';
-import OrderHistory from '../../components/employee/OrderHistory';
-import CustomerDetails from '../../components/employee/CustomerDetails';
-import VehicleRecords from '../../components/employee/VehicleRecords';
-import ServiceList from '../../components/employee/ServiceList';
-import ScheduleAppointments from '../../components/employee/ScheduleAppointments';
-import FeedBacks from '../../components/employee/FeedBacks'; // Added
+import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
 
 const EmployeeDashboard = () => {
-  const [activeTab, setActiveTab] = useState('confirm');
-
-  const tabs = [
-    { id: 'confirm', label: 'Confirm Orders', icon: '🧩' },
-    { id: 'manage', label: 'Manage Orders', icon: '⚙️' },
-    { id: 'history', label: 'Order History', icon: '🧾' },
-    { id: 'customers', label: 'Customers', icon: '👤' },
-    { id: 'vehicles', label: 'Vehicles', icon: '🚗' },
-    { id: 'services', label: 'Services', icon: '🧰' },
-    { id: 'schedule', label: 'Schedule', icon: '📅' },
-    { id: 'appointments', label: 'Feedback', icon: '💬' }
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'confirm':
-        return <ConfirmOrders />;
-      case 'manage':
-        return <ManageOrders />;
-      case 'history':
-        return <OrderHistory />;
-      case 'customers':
-        return <CustomerDetails />;
-      case 'vehicles':
-        return <VehicleRecords />;
-      case 'services':
-        return <ServiceList />;
-      case 'schedule':
-        return <ScheduleAppointments />;
-      case 'appointments': // Added
-        return <FeedBacks />;
-      default:
-        return <ConfirmOrders />;
-        
-    }
-  ]);
-
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const handleConfirmOrder = (bookingId) => {
-    setBookings(bookings.map(booking => 
-      booking.id === bookingId 
-        ? { ...booking, status: 'confirmed' }
-        : booking
-    ));
-    alert('Order confirmed successfully!');
+  // Fetch pending appointments from backend
+  useEffect(() => {
+    fetchPendingAppointments();
+  }, []);
+
+  const fetchPendingAppointments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching pending appointments...');
+      
+      // First, let's fetch all appointments to see what's in the database
+      try {
+        const allAppointments = await employeeService.getAllAppointments();
+        console.log('All appointments in database:', allAppointments);
+      } catch (err) {
+        console.log('Could not fetch all appointments:', err.message);
+      }
+      
+      const appointments = await employeeService.getPendingAppointments();
+      console.log('Received pending appointments:', appointments);
+      
+      // Transform the data to match the expected format
+      const transformedBookings = appointments.map(appointment => ({
+        id: appointment.id,
+        vehicleCompany: appointment.vehicle?.company || 'Unknown',
+        model: appointment.vehicle?.model || 'Unknown',
+        year: appointment.vehicle?.year || 'Unknown',
+        vehicleNumber: appointment.vehicle?.vehicleNumber || 'Unknown',
+        serviceCategory: appointment.service?.title || 'Unknown Service',
+        date: appointment.date,
+        time: appointment.time,
+        estimatedPrice: appointment.estimatedCost || appointment.service?.estimatedPrice || 0,
+        status: 'pending_confirmation',
+        customerName: appointment.customer?.name || appointment.customer?.username || 'Unknown Customer',
+        customerPhone: appointment.customer?.phone || 'Not provided',
+        additionalNote: appointment.additionalNote || '',
+        serviceDescription: appointment.service?.shortDescription || ''
+      }));
+
+      console.log('Transformed bookings:', transformedBookings);
+      setBookings(transformedBookings);
+    } catch (err) {
+      console.error('Error fetching pending appointments:', err);
+      setError(`Failed to load pending appointments: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmOrder = async (bookingId) => {
+    try {
+      console.log(`Attempting to confirm order ${bookingId}`);
+      await employeeService.updateAppointmentStatus(bookingId, 'CONFIRMED');
+      
+      // Remove the confirmed booking from the pending list
+      setBookings(bookings.filter(booking => booking.id !== bookingId));
+      
+      alert('Order confirmed successfully!');
+      console.log('Order confirmed and removed from pending list');
+    } catch (err) {
+      console.error('Error confirming appointment:', err);
+      alert(`Failed to confirm order: ${err.message}`);
+    }
   };
 
   const handleViewDetails = (booking) => {
@@ -69,6 +85,51 @@ const EmployeeDashboard = () => {
   };
 
   const pendingBookings = bookings.filter(b => b.status === 'pending_confirmation');
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Confirm Orders</h1>
+          <p className="text-gray-600 mt-2">Review and confirm pending service bookings</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading pending appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Confirm Orders</h1>
+          <p className="text-gray-600 mt-2">Review and confirm pending service bookings</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <button 
+                onClick={fetchPendingAppointments}
+                className="mt-2 text-sm text-red-800 underline hover:no-underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

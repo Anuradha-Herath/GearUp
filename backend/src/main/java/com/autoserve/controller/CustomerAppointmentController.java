@@ -1,7 +1,11 @@
 package com.autoserve.controller;
 
 import com.autoserve.entity.Appointment;
+import com.autoserve.entity.Service;
+import com.autoserve.entity.Vehicle;
 import com.autoserve.service.AppointmentService;
+import com.autoserve.service.ServiceService;
+import com.autoserve.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +20,8 @@ import java.util.List;
 public class CustomerAppointmentController {
 
     private final AppointmentService appointmentService;
+    private final ServiceService serviceService;
+    private final VehicleService vehicleService;
 
     @GetMapping
     public ResponseEntity<List<Appointment>> getMyAppointments() {
@@ -57,5 +63,17 @@ public class CustomerAppointmentController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    // New endpoint to get all available services
+    @GetMapping("/services")
+    public ResponseEntity<List<Service>> getAvailableServices() {
+        return ResponseEntity.ok(serviceService.getAllServices());
+    }
+
+    // New endpoint to get customer's vehicles
+    @GetMapping("/vehicles")
+    public ResponseEntity<List<Vehicle>> getMyVehicles() {
+        return ResponseEntity.ok(vehicleService.getMyVehicles());
     }
 }

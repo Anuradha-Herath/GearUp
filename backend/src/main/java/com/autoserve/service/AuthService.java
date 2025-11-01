@@ -99,7 +99,7 @@ public class AuthService {
         user.setUsername(signupRequest.getUsername());
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
-        user.setRole("USER");
+        user.setRole("CUSTOMER");
     // Always require verification and generate a non-null code
     user.setEnabled(false);
     user.setVerificationCode(UUID.randomUUID().toString());

@@ -3,8 +3,8 @@ spring:
   profiles:
     active: dev
   config:
-    # Load variables from backend/.env if present (no error if missing)
-    import: optional:file:backend/.env[.properties]
+    # Load variables from .env if present (no error if missing)
+    import: optional:file:.env[.properties]
 
 server:
   port: 8080
@@ -15,30 +15,32 @@ spring:
     activate:
       on-profile: dev
   datasource:
-
-
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/autoserve}
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
 
   websocket:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION}
+  secret: ${JWT_SECRET:mySecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongAndIsDefinitelyLongEnoughForHS512Algorithm}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 sendgrid:
   api:
-    key: ${SENDGRID_API_KEY}
+    key: ${SENDGRID_API_KEY:your-sendgrid-api-key}
   from:
-    email: ${SENDGRID_FROM_EMAIL}
+    email: ${SENDGRID_FROM_EMAIL:noreply@autoserve.com}
 
 
 ---

@@ -60,15 +60,17 @@ const EmployeeDashboard = () => {
 
   const handleConfirmOrder = async (bookingId) => {
     try {
+      console.log(`Attempting to confirm order ${bookingId}`);
       await employeeService.updateAppointmentStatus(bookingId, 'CONFIRMED');
       
       // Remove the confirmed booking from the pending list
       setBookings(bookings.filter(booking => booking.id !== bookingId));
       
       alert('Order confirmed successfully!');
+      console.log('Order confirmed and removed from pending list');
     } catch (err) {
       console.error('Error confirming appointment:', err);
-      alert('Failed to confirm order. Please try again.');
+      alert(`Failed to confirm order: ${err.message}`);
     }
   };
 

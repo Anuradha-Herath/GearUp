@@ -16,12 +16,14 @@ const ManageOrders = () => {
     try {
       setLoading(true);
       // Get all appointments, not just confirmed ones, so we can manage all statuses
-      const appointments = await employeeService.getAllAppointments();
+      const appointments = await employeeService.getAllAppointmentsForManagement();
+      console.log('All appointments for management:', appointments);
       
       // Filter to only show confirmed and subsequent statuses
       const relevantAppointments = appointments.filter(appointment => 
         ['CONFIRMED', 'PENDING', 'ONGOING', 'FINISHED'].includes(appointment.status.toUpperCase())
       );
+      console.log('Filtered relevant appointments:', relevantAppointments);
       
       // Transform the data to match the expected format
       const transformedOrders = relevantAppointments.map(appointment => ({
@@ -42,10 +44,11 @@ const ManageOrders = () => {
         assignedEmployee: appointment.employee?.name || appointment.employee?.username || 'Not Assigned'
       }));
 
+      console.log('Transformed orders:', transformedOrders);
       setOrders(transformedOrders);
     } catch (err) {
       console.error('Error fetching confirmed appointments:', err);
-      setError('Failed to load confirmed appointments. Please try again later.');
+      setError(`Failed to load confirmed appointments: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -53,6 +56,7 @@ const ManageOrders = () => {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
+      console.log(`Attempting to change order ${orderId} status to ${newStatus}`);
       await employeeService.updateAppointmentStatus(orderId, newStatus.toUpperCase());
       
       // Update local state
@@ -65,7 +69,7 @@ const ManageOrders = () => {
       alert(`Order status updated to ${newStatus} successfully!`);
     } catch (err) {
       console.error('Error updating appointment status:', err);
-      alert('Failed to update order status. Please try again.');
+      alert(`Failed to update order status: ${err.message}`);
     }
   };
 

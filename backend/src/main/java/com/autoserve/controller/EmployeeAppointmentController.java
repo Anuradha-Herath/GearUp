@@ -38,9 +38,12 @@ public class EmployeeAppointmentController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Appointment> updateAppointmentStatus(@PathVariable Long id, @RequestBody UpdateStatusRequest request) {
         try {
+            System.out.println("Received status update request for appointment ID: " + id + " with status: " + request.getStatus());
             Appointment updatedAppointment = appointmentService.updateAppointmentStatus(id, request.getStatus());
+            System.out.println("Successfully updated appointment status");
             return ResponseEntity.ok(updatedAppointment);
         } catch (RuntimeException e) {
+            System.err.println("Error updating appointment status: " + e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

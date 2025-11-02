@@ -31,6 +31,7 @@ import Services from './pages/customer/Services';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
 import FeedbackForm from './pages/customer/FeedbackForm';
 import MyFeedbacks from './pages/customer/Feedbacks';
+import EmployeeFeedbacks from './pages/employee/Feedbacks';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
         <Route path="/employee/customers" element={<EmployeeLayout><Customers /></EmployeeLayout>} />
         <Route path="/employee/services" element={<EmployeeLayout><EmployeeServices /></EmployeeLayout>} />
         <Route path="/employee/schedule" element={<EmployeeLayout><Schedule /></EmployeeLayout>} />
+        <Route path="/employee/feedbacks" element={<EmployeeLayout><EmployeeFeedbacks /></EmployeeLayout>} />
         
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />

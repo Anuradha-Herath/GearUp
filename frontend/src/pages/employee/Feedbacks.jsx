@@ -74,11 +74,22 @@ const Feedbacks = () => {
       feedbackText: 'Good service overall. The air conditioning works perfectly now.',
       serviceDate: '2025-10-21',
       serviceType: 'AC Repair'
+    },
+    {
+      id: 9,
+      customerName: 'Jennifer Martinez',
+      vehicle: 'Nissan Altima 2020 (NIS-6666)',
+      rating: 4,
+      feedbackText: 'Good service overall. The air conditioning works perfectly now.',
+      serviceDate: '2025-10-21',
+      serviceType: 'AC Repair'
     }
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   // Calculate average rating
   const averageRating = feedbacks.length > 0 
@@ -102,6 +113,22 @@ const Feedbacks = () => {
     
     return matchesSearch && matchesRating;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredFeedbacks.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedFeedbacks = filteredFeedbacks.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRating]);
+
+  const goToPage = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const getStarDisplay = (rating) => {
     return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
@@ -256,7 +283,7 @@ const Feedbacks = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredFeedbacks.map((feedback) => (
+              {paginatedFeedbacks.map((feedback) => (
                 <tr key={feedback.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -302,21 +329,105 @@ const Feedbacks = () => {
           </table>
         </div>
 
-        {filteredFeedbacks.length === 0 && (
+        {paginatedFeedbacks.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Feedbacks Found</h3>
             <p className="text-gray-600">Try adjusting your search or filter criteria</p>
           </div>
         )}
-      </div>
 
-      {/* Summary */}
-      {filteredFeedbacks.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4 text-sm text-gray-600 text-center">
-          Showing {filteredFeedbacks.length} of {feedbacks.length} feedbacks
-        </div>
-      )}
+        {/* Pagination */}
+        {filteredFeedbacks.length > 0 && (
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              {/* Results Info */}
+              <div className="text-sm text-gray-700">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(endIndex, filteredFeedbacks.length)}</span> of{' '}
+                <span className="font-medium">{filteredFeedbacks.length}</span> results
+              </div>
+
+              {/* Pagination Buttons */}
+              <div className="flex items-center gap-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-1">
+                    ← Previous
+                  </span>
+                </button>
+
+                {/* Page Numbers */}
+                <div className="hidden sm:flex gap-1">
+                  {[...Array(totalPages)].map((_, index) => {
+                    const page = index + 1;
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === page
+                              ? 'bg-primary text-white'
+                              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span key={page} className="px-2 py-2 text-gray-400">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                {/* Mobile Page Indicator */}
+                <div className="sm:hidden px-3 py-2 text-sm font-medium text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-1">
+                    Next →
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Items per page info */}
+            <div className="mt-3 text-xs text-gray-500 text-center">
+              Displaying {itemsPerPage} items per page
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

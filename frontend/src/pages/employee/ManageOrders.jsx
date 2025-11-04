@@ -5,7 +5,7 @@ const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('confirmed');
 
   // Fetch confirmed appointments from backend
   useEffect(() => {
@@ -91,10 +91,7 @@ const ManageOrders = () => {
     return statusFlow[currentStatus] || [];
   };
 
-  const filteredOrders = orders.filter(order => {
-    if (statusFilter === 'all') return true;
-    return order.status === statusFilter;
-  });
+  const filteredOrders = orders.filter(order => order.status === activeTab);
 
   if (loading) {
     return (
@@ -149,96 +146,88 @@ const ManageOrders = () => {
         <p className="text-gray-600 mt-2">Track and update the status of confirmed orders</p>
       </div>
 
-      {/* Status Filter */}
+      {/* Status Tabs */}
       <div className="bg-white p-4 rounded-lg shadow-md border">
-        <div className="flex gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="all">All Orders</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="finished">Finished</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Confirmed</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.filter(o => o.status === 'confirmed').length}
-              </p>
-            </div>
-            <div className="text-3xl">📋</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Ongoing</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.filter(o => o.status === 'ongoing').length}
-              </p>
-            </div>
-            <div className="text-3xl">⚙️</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Completed Today</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.filter(o => o.status === 'finished').length}
-              </p>
-            </div>
-            <div className="text-3xl">✅</div>
-          </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setActiveTab('confirmed')}
+            className={`flex-1 py-3 px-4 text-center font-medium rounded-lg transition-colors ${
+              activeTab === 'confirmed'
+                ? 'bg-[#7A85C1] text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Confirmed ({orders.filter(o => o.status === 'confirmed').length})
+          </button>
+          <button
+            onClick={() => setActiveTab('ongoing')}
+            className={`flex-1 py-3 px-4 text-center font-medium rounded-lg transition-colors ${
+              activeTab === 'ongoing'
+                ? 'bg-[#7A85C1] text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Ongoing ({orders.filter(o => o.status === 'ongoing').length})
+          </button>
+          <button
+            onClick={() => setActiveTab('finished')}
+            className={`flex-1 py-3 px-4 text-center font-medium rounded-lg transition-colors ${
+              activeTab === 'finished'
+                ? 'bg-[#7A85C1] text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Finished ({orders.filter(o => o.status === 'finished').length})
+          </button>
         </div>
       </div>
 
       {/* Orders Grid */}
       {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <div className="text-6xl mb-4">📋</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Active Orders</h3>
-          <p className="text-gray-600">There are no orders to manage at the moment.</p>
+          <div className="text-6xl mb-4">
+            {activeTab === 'confirmed' && '📋'}
+            {activeTab === 'ongoing' && '⚙️'}
+            {activeTab === 'finished' && '✅'}
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {activeTab === 'confirmed' && 'No Confirmed Orders'}
+            {activeTab === 'ongoing' && 'No Ongoing Orders'}
+            {activeTab === 'finished' && 'No Finished Orders'}
+          </h3>
+          <p className="text-gray-600">
+            {activeTab === 'confirmed' && 'There are no confirmed orders at the moment.'}
+            {activeTab === 'ongoing' && 'There are no ongoing orders at the moment.'}
+            {activeTab === 'finished' && 'There are no finished orders yet.'}
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
               {/* Card Header */}
-              <div className="bg-primary/10 p-4 border-b border-gray-200">
+              <div className="bg-primary/10 p-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-gray-900 truncate">
                     {order.vehicleCompany} {order.model}
                   </h3>
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                     {order.status.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{order.vehicleNumber}</p>
+                <p className="text-xs text-gray-600 mt-1 truncate">{order.vehicleNumber}</p>
               </div>
 
               {/* Card Body */}
-              <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <p className="text-gray-500">Year</p>
                     <p className="font-medium text-gray-900">{order.year}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Service</p>
-                    <p className="font-medium text-gray-900">{order.serviceCategory}</p>
+                    <p className="font-medium text-gray-900 truncate">{order.serviceCategory}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Date</p>
@@ -250,35 +239,35 @@ const ManageOrders = () => {
                   </div>
                   <div>
                     <p className="text-gray-500">Customer</p>
-                    <p className="font-medium text-gray-900">{order.customerName}</p>
+                    <p className="font-medium text-gray-900 truncate">{order.customerName}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Phone</p>
-                    <p className="font-medium text-gray-900 text-xs">{order.customerPhone}</p>
+                    <p className="font-medium text-gray-900 text-xs truncate">{order.customerPhone}</p>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-gray-200">
-                  <p className="text-gray-500 text-sm">Estimated Price</p>
-                  <p className="text-2xl font-bold text-primary">${order.estimatedPrice.toFixed(2)}</p>
+                  <p className="text-gray-500 text-xs">Estimated Price</p>
+                  <p className="text-lg font-bold text-primary">${order.estimatedPrice.toFixed(2)}</p>
                 </div>
               </div>
 
               {/* Card Actions */}
-              <div className="p-4 bg-gray-50">
+              <div className="p-3 bg-gray-50">
                 <p className="text-xs text-gray-600 mb-2">Update Status:</p>
                 <div className="flex gap-2">
                   {getNextStatuses(order.status).map((status) => (
                     <button
                       key={status}
                       onClick={() => handleStatusChange(order.id, status)}
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                      className="flex-1 bg-[#7A85C1] hover:bg-[#6a75a8] text-white font-medium py-2 px-3 rounded-lg transition-colors text-xs"
                     >
-                      {status === 'ongoing' ? 'Start Work' : 'Mark as Finished'}
+                      {status === 'ongoing' ? 'Start Work' : 'Mark Finished'}
                     </button>
                   ))}
                   {getNextStatuses(order.status).length === 0 && (
-                    <p className="text-sm text-gray-500 italic">No further actions available</p>
+                    <p className="text-xs text-gray-500 italic text-center w-full">No further actions</p>
                   )}
                 </div>
               </div>

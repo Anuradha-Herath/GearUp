@@ -1,0 +1,6 @@
+## Backend-specific ignores
+# Local environment file (keep secrets out of repo)
+.env
+.env.local
+.env.*.local
+

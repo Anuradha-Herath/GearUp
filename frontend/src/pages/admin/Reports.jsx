@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -293,9 +295,90 @@ const Reports = () => {
     };
   };
 
+  const exportReportPdf = () => {
+    if (!reportData) return;
+
+    const doc = new jsPDF();
+    const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+
+    // Add summary as key: value pairs
+    const summaryEntries = Object.entries(reportData.summary).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1')}: ${v}`);
+    doc.setFontSize(10);
+    summaryEntries.forEach((line, i) => {
+      doc.text(line, 14, 28 + i * 6);
+    });
+
+    // Prepare table data: first column = series label, remaining columns = values for each label
+    const labels = reportData.chartData.labels || [];
+    const datasets = reportData.chartData.datasets || [];
+
+    const head = [['Series', ...labels]];
+    const body = datasets.map(ds => [ds.label || 'Series', ...((ds.data || []).map(v => String(v)))]);
+
+    // Start table below the summary
+    const startY = 28 + summaryEntries.length * 6 + 6;
+
+    // Use autoTable to render the table; fall back to manual rendering if unavailable
+    if (typeof autoTable === 'function') {
+      autoTable(doc, {
+        head,
+        body,
+        startY,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [122, 133, 193] },
+      });
+    } else if (typeof doc.autoTable === 'function') {
+      // older integration
+      // eslint-disable-next-line no-undef
+      doc.autoTable({ head, body, startY, styles: { fontSize: 9 }, headStyles: { fillColor: [122, 133, 193] } });
+    } else {
+      // simple fallback: render table as lines of text
+      let y = startY;
+      const lineHeight = 6;
+      // header
+      doc.setFontSize(9);
+      doc.text(head[0].join(' | '), 14, y);
+      y += lineHeight;
+      body.forEach(row => {
+        doc.text(row.join(' | '), 14, y);
+        y += lineHeight;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+    }
+
+    doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
+  };
+
   const exportReport = (format) => {
-    // Simulate export functionality
-    alert(`Exporting ${reportType} report as ${format.toUpperCase()}`);
+    if (format === 'pdf') return exportReportPdf();
+    if (format === 'csv') {
+      // simple CSV export of the same table
+      if (!reportData) return;
+      const labels = reportData.chartData.labels || [];
+      const datasets = reportData.chartData.datasets || [];
+      const rows = [];
+      const header = ['Series', ...labels];
+      rows.push(header.join(','));
+      datasets.forEach(ds => {
+        const row = [ds.label || 'Series', ...(ds.data || [])];
+        rows.push(row.join(','));
+      });
+      const csv = rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType}_report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const renderChart = () => {

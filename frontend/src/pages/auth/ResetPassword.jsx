@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -57,15 +59,19 @@ const ResetPassword = () => {
       if (response.ok) {
         setMessage(data);
         setIsSuccess(true);
+        toast.success('Password reset successfully! Redirecting to login...');
         // Redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/login');
         }, 3000);
       } else {
         setError(data);
+        toast.error(data || 'Failed to reset password');
       }
     } catch (err) {
-      setError('Failed to reset password. Please try again.');
+      const errorMsg = 'Failed to reset password. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }

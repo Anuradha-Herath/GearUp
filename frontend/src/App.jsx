@@ -6,6 +6,7 @@ import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Verify from './pages/auth/Verify';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import ManageOrders from './pages/employee/ManageOrders';
@@ -29,7 +30,9 @@ import MyBookings from './pages/customer/MyBookings';
 import MyVehicles from './pages/customer/MyVehicles';
 import Services from './pages/customer/Services';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
-
+import FeedbackForm from './pages/customer/FeedbackForm';
+import MyFeedbacks from './pages/customer/Feedbacks';
+import EmployeeFeedbacks from './pages/employee/Feedbacks';
 
 function App() {
   return (
@@ -42,6 +45,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
   <Route path="/verify" element={<Verify />} />
 
         {/* Employee Routes */}
@@ -51,6 +55,7 @@ function App() {
         <Route path="/employee/customers" element={<EmployeeLayout><Customers /></EmployeeLayout>} />
         <Route path="/employee/services" element={<EmployeeLayout><EmployeeServices /></EmployeeLayout>} />
         <Route path="/employee/schedule" element={<EmployeeLayout><Schedule /></EmployeeLayout>} />
+        <Route path="/employee/feedbacks" element={<EmployeeLayout><EmployeeFeedbacks /></EmployeeLayout>} />
         
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
@@ -67,7 +72,8 @@ function App() {
         <Route path="/customer/book-appointment" element={<CustomerLayout><BookAppointment /></CustomerLayout>} />
         <Route path="/customer/my-bookings" element={<CustomerLayout><MyBookings /></CustomerLayout>} />
         <Route path="/customer/service-progress" element={<CustomerLayout><ServiceProgress /></CustomerLayout>} />
-
+        <Route path="/customer/feedback-form" element={<CustomerLayout><FeedbackForm /></CustomerLayout>} />
+        <Route path="/customer/feedbacks" element={<CustomerLayout><MyFeedbacks /></CustomerLayout>} />
       </Routes>
       </ToastProvider>
     </AuthProvider>

@@ -1,10 +1,9 @@
-
 spring:
   profiles:
     active: dev
   config:
     # Load variables from .env if present (no error if missing)
-    import: optional:file:.env[.properties]
+    import: optional:file:backend/.env[.properties]
 
 server:
   port: 8080
@@ -33,7 +32,7 @@ spring:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJwtTokenGenerationThatShouldBeAtLeast256BitsLongAndIsDefinitelyLongEnoughForHS512Algorithm}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
 sendgrid:
@@ -41,7 +40,6 @@ sendgrid:
     key: ${SENDGRID_API_KEY:your-sendgrid-api-key}
   from:
     email: ${SENDGRID_FROM_EMAIL:noreply@autoserve.com}
-
 
 ---
 spring:

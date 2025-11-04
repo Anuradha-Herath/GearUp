@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import appointmentService from '../../services/appointmentService';
+import { useToast } from '../../context/ToastContext';
 
 const BookAppointment = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [selectedService, setSelectedService] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [services, setServices] = useState([]);
@@ -46,6 +48,7 @@ const BookAppointment = () => {
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load data. Please try again.');
+      toast.error('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -71,12 +74,12 @@ const BookAppointment = () => {
     e.preventDefault();
     
     if (!selectedService) {
-      alert('Please select a service');
+      toast.error('Please select a service');
       return;
     }
     
     if (!selectedVehicle) {
-      alert('Please select a vehicle');
+      toast.error('Please select a vehicle');
       return;
     }
 
@@ -97,12 +100,12 @@ const BookAppointment = () => {
       console.log('Appointment created:', response);
 
       // Show success message and redirect
-      alert('Appointment booked successfully!');
+      toast.success('Appointment booked successfully!');
       navigate('/customer/my-bookings');
       
     } catch (error) {
       console.error('Error creating appointment:', error);
-      alert('Failed to book appointment. Please try again.');
+      toast.error('Failed to book appointment. Please try again.');
     }
   };
 

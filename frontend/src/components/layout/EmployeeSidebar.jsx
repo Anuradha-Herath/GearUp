@@ -11,6 +11,7 @@ const EmployeeSidebar = () => {
     { path: '/employee/customers', label: 'Customers', icon: '👥' },
     { path: '/employee/services', label: 'Services', icon: '🔧' },
     { path: '/employee/schedule', label: 'Schedule', icon: '📅' },
+    { path: '/employee/feedbacks', label: 'Feedbacks', icon: '📝' },
   ];
 
   return (

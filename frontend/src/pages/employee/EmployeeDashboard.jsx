@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import employeeService from '../../services/employeeService';
+import { useToast } from '../../context/ToastContext';
 
 const EmployeeDashboard = () => {
   const [bookings, setBookings] = useState([]);
@@ -7,6 +8,7 @@ const EmployeeDashboard = () => {
   const [error, setError] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const toast = useToast();
 
   // Fetch pending appointments from backend
   useEffect(() => {
@@ -66,11 +68,11 @@ const EmployeeDashboard = () => {
       // Remove the confirmed booking from the pending list
       setBookings(bookings.filter(booking => booking.id !== bookingId));
       
-      alert('Order confirmed successfully!');
+      toast.success('Order confirmed successfully!');
       console.log('Order confirmed and removed from pending list');
     } catch (err) {
       console.error('Error confirming appointment:', err);
-      alert(`Failed to confirm order: ${err.message}`);
+      toast.error(`Failed to confirm order: ${err.message}`);
     }
   };
 
@@ -158,32 +160,32 @@ const EmployeeDashboard = () => {
           <p className="text-gray-600">No pending bookings to confirm at the moment.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {pendingBookings.map((booking) => (
             <div key={booking.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
               {/* Card Header */}
-              <div className="bg-primary/10 p-4 border-b border-gray-200">
+              <div className="bg-primary/10 p-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-gray-900 truncate">
                     {booking.vehicleCompany} {booking.model}
                   </h3>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
                     Pending
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{booking.vehicleNumber}</p>
+                <p className="text-xs text-gray-600 mt-1 truncate">{booking.vehicleNumber}</p>
               </div>
 
               {/* Card Body */}
-              <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <p className="text-gray-500">Year</p>
                     <p className="font-medium text-gray-900">{booking.year}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Service</p>
-                    <p className="font-medium text-gray-900">{booking.serviceCategory}</p>
+                    <p className="font-medium text-gray-900 truncate">{booking.serviceCategory}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Date</p>
@@ -196,22 +198,22 @@ const EmployeeDashboard = () => {
                 </div>
 
                 <div className="pt-2 border-t border-gray-200">
-                  <p className="text-gray-500 text-sm">Estimated Price</p>
-                  <p className="text-2xl font-bold text-primary">${booking.estimatedPrice.toFixed(2)}</p>
+                  <p className="text-gray-500 text-xs">Estimated Price</p>
+                  <p className="text-lg font-bold text-primary">${booking.estimatedPrice.toFixed(2)}</p>
                 </div>
               </div>
 
               {/* Card Actions */}
-              <div className="p-4 bg-gray-50 flex gap-3">
+              <div className="p-3 bg-gray-50 flex gap-2">
                 <button
                   onClick={() => handleConfirmOrder(booking.id)}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-[#7A85C1] hover:bg-[#6a75a8] text-white font-medium py-2 px-3 rounded-lg transition-colors text-xs"
                 >
                   Confirm Order
                 </button>
                 <button
                   onClick={() => handleViewDetails(booking)}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg border border-gray-300 transition-colors"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 font-medium py-2 px-3 rounded-lg border border-gray-300 transition-colors text-xs"
                 >
                   View Details
                 </button>
@@ -226,7 +228,7 @@ const EmployeeDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="bg-primary text-white p-6 rounded-t-lg">
+            <div className="bg-[#7A85C1] text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">Booking Details</h2>
             </div>
 
@@ -279,7 +281,7 @@ const EmployeeDashboard = () => {
                   </div>
                   <div>
                     <p className="text-gray-500">Estimated Price</p>
-                    <p className="text-xl font-bold text-primary">${selectedBooking.estimatedPrice.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-[#7A85C1]">${selectedBooking.estimatedPrice.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -307,7 +309,7 @@ const EmployeeDashboard = () => {
                   handleConfirmOrder(selectedBooking.id);
                   closeModal();
                 }}
-                className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-[#7A85C1] hover:bg-[#6a75a8] text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 Confirm Order
               </button>

@@ -1,9 +1,11 @@
 package com.autoserve.service;
 
 import com.autoserve.entity.Appointment;
+import com.autoserve.entity.TimeLog;
 import com.autoserve.entity.User;
 import com.autoserve.entity.Vehicle;
 import com.autoserve.repository.AppointmentRepository;
+import com.autoserve.repository.TimeLogRepository;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.repository.VehicleRepository;
 import com.autoserve.repository.ServiceRepository;
@@ -11,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +27,7 @@ public class AppointmentService {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final ServiceRepository serviceRepository;
+    private final TimeLogRepository timeLogRepository;
 
     public List<Appointment> getMyAppointments() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -113,6 +118,7 @@ public class AppointmentService {
         return appointmentRepository.findByStatus("CONFIRMED");
     }
 
+    @Transactional
     public Appointment updateAppointmentStatus(Long id, String status) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + id));
@@ -122,7 +128,80 @@ public class AppointmentService {
             throw new RuntimeException("Invalid status: " + status);
         }
         
-        appointment.setStatus(status.toUpperCase());
+        String upperStatus = status.toUpperCase();
+        String currentStatus = appointment.getStatus();
+        
+        // Get current authenticated user (employee) if available
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication != null ? authentication.getName() : null;
+        User employee = null;
+        
+        // Only get employee if username is valid and not anonymous
+        if (username != null && !"anonymousUser".equals(username)) {
+            employee = userRepository.findByUsername(username).orElse(null);
+        }
+        
+        System.out.println("Updating appointment status from " + currentStatus + " to " + upperStatus);
+        if (employee != null) {
+            System.out.println("Employee: " + employee.getUsername() + " (ID: " + employee.getId() + ")");
+        } else {
+            System.out.println("No authenticated employee found - TIME LOGS WILL NOT BE CREATED");
+        }
+        System.out.println("Appointment ID: " + appointment.getId());
+        
+        // Handle time logging based on status transitions (only if employee is authenticated)
+        if (employee != null && "ONGOING".equals(upperStatus) && !"ONGOING".equals(currentStatus)) {
+            // Starting work - create time log with start time
+            System.out.println("=== CREATING TIME LOG ===");
+            System.out.println("Employee ID: " + employee.getId());
+            System.out.println("Appointment ID: " + appointment.getId());
+            System.out.println("Start Time: " + LocalDateTime.now());
+            
+            try {
+                TimeLog timeLog = new TimeLog();
+                timeLog.setAppointment(appointment);
+                timeLog.setEmployee(employee);
+                timeLog.setStartTime(LocalDateTime.now());
+                timeLog.setDescription("Work started on " + appointment.getService().getTitle());
+                
+                System.out.println("TimeLog object created, about to save...");
+                System.out.println("TimeLog - Employee: " + (timeLog.getEmployee() != null ? timeLog.getEmployee().getId() : "NULL"));
+                System.out.println("TimeLog - Appointment: " + (timeLog.getAppointment() != null ? timeLog.getAppointment().getId() : "NULL"));
+                System.out.println("TimeLog - StartTime: " + timeLog.getStartTime());
+                System.out.println("TimeLog - Description: " + timeLog.getDescription());
+                
+                TimeLog savedTimeLog = timeLogRepository.save(timeLog);
+                timeLogRepository.flush(); // Force immediate persistence
+                
+                System.out.println("=== TIME LOG SAVED SUCCESSFULLY ===");
+                System.out.println("Saved TimeLog ID: " + savedTimeLog.getId());
+                System.out.println("Saved TimeLog Employee ID: " + savedTimeLog.getEmployee().getId());
+                System.out.println("Saved TimeLog Appointment ID: " + savedTimeLog.getAppointment().getId());
+                System.out.println("Saved TimeLog Start Time: " + savedTimeLog.getStartTime());
+            } catch (Exception e) {
+                System.err.println("=== ERROR SAVING TIME LOG ===");
+                System.err.println("Error: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
+        } else if (employee != null && "FINISHED".equals(upperStatus) && "ONGOING".equals(currentStatus)) {
+            // Finishing work - update time log with end time
+            System.out.println("Finding time log to finish...");
+            List<TimeLog> timeLogs = timeLogRepository.findByAppointmentIdAndEndTimeIsNull(id);
+            System.out.println("Found " + timeLogs.size() + " time logs to finish");
+            
+            if (!timeLogs.isEmpty()) {
+                TimeLog timeLog = timeLogs.get(0);
+                timeLog.setEndTime(LocalDateTime.now());
+                timeLog.setDescription(timeLog.getDescription() + " - Completed");
+                
+                TimeLog updatedTimeLog = timeLogRepository.save(timeLog);
+                System.out.println("Time log updated with ID: " + updatedTimeLog.getId());
+                System.out.println("End time: " + updatedTimeLog.getEndTime());
+            }
+        }
+        
+        appointment.setStatus(upperStatus);
         return appointmentRepository.save(appointment);
     }
 

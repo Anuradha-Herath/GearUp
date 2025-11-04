@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import appointmentService from '../../services/appointmentService';
 import { useToast } from '../../context/ToastContext';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    bookingId: null,
+    action: null,
+  });
   const toast = useToast();
 
   // Fetch real appointments from backend
@@ -55,17 +61,26 @@ const MyBookings = () => {
     return booking.status.toLowerCase() === statusFilter.toLowerCase();
   });
 
-  const cancelBooking = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
-      try {
-        await appointmentService.deleteAppointment(id);
-        // Update local state to reflect the change
-        setBookings(prev => prev.filter(booking => booking.id !== id));
-        toast.success('Booking cancelled successfully!');
-      } catch (err) {
-        console.error('Error cancelling appointment:', err);
-        toast.error('Failed to cancel booking. Please try again.');
-      }
+  const cancelBooking = (id) => {
+    setConfirmModal({ isOpen: true, bookingId: id, action: 'cancel' });
+  };
+
+  const handleConfirmCancel = async () => {
+    const { bookingId } = confirmModal;
+    setConfirmModal({ isOpen: false, bookingId: null, action: null });
+
+    try {
+      setLoading(true);
+      await appointmentService.deleteAppointment(bookingId);
+      
+      // Update local state to reflect the change
+      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
+      toast.success('Booking cancelled successfully!');
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      toast.error('Failed to cancel booking. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -238,6 +253,20 @@ const MyBookings = () => {
             </div>
           </>
         )}
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmModal.isOpen}
+          title="Cancel Booking"
+          message="Are you sure you want to cancel this booking? This action cannot be undone."
+          onConfirm={handleConfirmCancel}
+          onCancel={() =>
+            setConfirmModal({ isOpen: false, bookingId: null, action: null })
+          }
+          confirmText="Cancel Booking"
+          cancelText="Keep Booking"
+          type="danger"
+        />
       </div>
     </div>
   );

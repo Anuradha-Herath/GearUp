@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import employeeService from '../../services/employeeService';
+import { useToast } from '../../context/ToastContext';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('confirmed');
+  const { toast } = useToast();
 
   // Fetch confirmed appointments from backend
   useEffect(() => {
@@ -66,10 +68,10 @@ const ManageOrders = () => {
           : order
       ));
       
-      alert(`Order status updated to ${newStatus} successfully!`);
+      toast.success(`Order status updated to ${newStatus} successfully!`);
     } catch (err) {
       console.error('Error updating appointment status:', err);
-      alert(`Failed to update order status: ${err.message}`);
+      toast.error(`Failed to update order status: ${err.message}`);
     }
   };
 

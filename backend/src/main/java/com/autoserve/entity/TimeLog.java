@@ -12,17 +12,22 @@ public class TimeLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
+
+    @Column(name = "end_time")
     private LocalDateTime endTime;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "employee_id", nullable = false, referencedColumnName = "id")
+    private User employee;
 
-    @ManyToOne
-    @JoinColumn(name = "project_id")
-    private Project project;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "appointment_id", nullable = false, referencedColumnName = "id")
+    private Appointment appointment;
 
     // Manual getters and setters for compilation if Lombok fails
     public Long getId() {
@@ -57,19 +62,19 @@ public class TimeLog {
         this.description = description;
     }
 
-    public Employee getEmployee() {
+    public User getEmployee() {
         return employee;
     }
 
-    public void setEmployee(Employee employee) {
+    public void setEmployee(User employee) {
         this.employee = employee;
     }
 
-    public Project getProject() {
-        return project;
+    public Appointment getAppointment() {
+        return appointment;
     }
 
-    public void setProject(Project project) {
-        this.project = project;
+    public void setAppointment(Appointment appointment) {
+        this.appointment = appointment;
     }
 }

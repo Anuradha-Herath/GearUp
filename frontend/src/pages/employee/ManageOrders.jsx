@@ -76,8 +76,7 @@ const ManageOrders = () => {
   const getStatusColor = (status) => {
     const colors = {
       confirmed: 'bg-blue-100 text-blue-800',
-      started: 'bg-yellow-100 text-yellow-800',
-      ongoing: 'bg-purple-100 text-purple-800',
+      ongoing: 'bg-yellow-100 text-yellow-800',
       finished: 'bg-green-100 text-green-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -85,8 +84,7 @@ const ManageOrders = () => {
 
   const getNextStatuses = (currentStatus) => {
     const statusFlow = {
-      confirmed: ['started'],
-      started: ['ongoing'],
+      confirmed: ['ongoing'],
       ongoing: ['finished'],
       finished: []
     };
@@ -163,7 +161,6 @@ const ManageOrders = () => {
             >
               <option value="all">All Orders</option>
               <option value="confirmed">Confirmed</option>
-              <option value="started">Started</option>
               <option value="ongoing">Ongoing</option>
               <option value="finished">Finished</option>
             </select>
@@ -187,9 +184,9 @@ const ManageOrders = () => {
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">In Progress</p>
+              <p className="text-sm text-gray-600">Ongoing</p>
               <p className="text-2xl font-bold text-gray-900">
-                {orders.filter(o => ['started', 'ongoing'].includes(o.status)).length}
+                {orders.filter(o => o.status === 'ongoing').length}
               </p>
             </div>
             <div className="text-3xl">⚙️</div>
@@ -277,7 +274,7 @@ const ManageOrders = () => {
                       onClick={() => handleStatusChange(order.id, status)}
                       className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
                     >
-                      Mark as {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status === 'ongoing' ? 'Start Work' : 'Mark as Finished'}
                     </button>
                   ))}
                   {getNextStatuses(order.status).length === 0 && (

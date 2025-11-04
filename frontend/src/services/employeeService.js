@@ -21,10 +21,12 @@ const employeeService = {
   getPendingAppointments: async () => {
     console.log('Fetching from:', `${API_BASE_URL}/employee/appointments/pending`);
     
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
     const response = await fetch(`${API_BASE_URL}/employee/appointments/pending`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: headers
     });
     
     console.log('Response status:', response.status);
@@ -44,10 +46,12 @@ const employeeService = {
   getAllAppointments: async () => {
     console.log('Fetching all appointments from:', `${API_BASE_URL}/employee/appointments`);
     
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
     const response = await fetch(`${API_BASE_URL}/employee/appointments`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: headers
     });
     
     console.log('All appointments response status:', response.status);
@@ -66,10 +70,12 @@ const employeeService = {
   getConfirmedAppointments: async () => {
     console.log('Fetching confirmed appointments from:', `${API_BASE_URL}/employee/appointments/confirmed`);
     
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
     const response = await fetch(`${API_BASE_URL}/employee/appointments/confirmed`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: headers
     });
     
     console.log('Confirmed appointments response status:', response.status);
@@ -89,10 +95,12 @@ const employeeService = {
   getAllAppointmentsForManagement: async () => {
     console.log('Fetching all appointments from:', `${API_BASE_URL}/employee/appointments`);
     
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
     const response = await fetch(`${API_BASE_URL}/employee/appointments`, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: headers
     });
     
     console.log('All appointments response status:', response.status);
@@ -112,11 +120,23 @@ const employeeService = {
     console.log(`Updating appointment ${appointmentId} status to ${status}`);
     console.log('Update URL:', `${API_BASE_URL}/employee/appointments/${appointmentId}/status`);
     
+    // Get the JWT token from localStorage
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Add authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('Authorization token added to request');
+    } else {
+      console.warn('No authentication token found');
+    }
+    
     const response = await fetch(`${API_BASE_URL}/employee/appointments/${appointmentId}/status`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: headers,
       body: JSON.stringify({ status })
     });
     

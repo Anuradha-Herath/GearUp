@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import vehicleService from '../../services/vehicleService';
+import { useToast } from '../../context/ToastContext';
 
 const MyVehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -7,6 +8,7 @@ const MyVehicles = () => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+  const toast = useToast();
   const [formData, setFormData] = useState({
     company: '',
     model: '',
@@ -52,14 +54,16 @@ const MyVehicles = () => {
 
       if (editingVehicle) {
         await vehicleService.updateVehicle(editingVehicle.id, vehicleData);
+        toast.success('Vehicle updated successfully!');
       } else {
         await vehicleService.createVehicle(vehicleData);
+        toast.success('Vehicle added successfully!');
       }
 
       await fetchVehicles();
       handleCloseModal();
     } catch (err) {
-      setError(err.message || 'Failed to save vehicle. Please try again.');
+      toast.error(err.message || 'Failed to save vehicle. Please try again.');
       console.error('Error saving vehicle:', err);
     }
   };
@@ -80,8 +84,9 @@ const MyVehicles = () => {
       try {
         await vehicleService.deleteVehicle(id);
         await fetchVehicles();
+        toast.success('Vehicle deleted successfully!');
       } catch (err) {
-        setError('Failed to delete vehicle. Please try again.');
+        toast.error('Failed to delete vehicle. Please try again.');
         console.error('Error deleting vehicle:', err);
       }
     }

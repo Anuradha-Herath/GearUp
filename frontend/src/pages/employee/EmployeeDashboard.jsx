@@ -8,7 +8,7 @@ const EmployeeDashboard = () => {
   const [error, setError] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const { toast } = useToast();
+  const toast = useToast();
 
   // Fetch pending appointments from backend
   useEffect(() => {

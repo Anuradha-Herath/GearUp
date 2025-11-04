@@ -7,7 +7,7 @@ const ManageOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('confirmed');
-  const { toast } = useToast();
+  const toast = useToast();
 
   // Fetch confirmed appointments from backend
   useEffect(() => {

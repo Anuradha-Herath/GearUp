@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import appointmentService from '../../services/appointmentService';
+import { useToast } from '../../context/ToastContext';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const toast = useToast();
 
   // Fetch real appointments from backend
   useEffect(() => {
@@ -59,10 +61,10 @@ const MyBookings = () => {
         await appointmentService.deleteAppointment(id);
         // Update local state to reflect the change
         setBookings(prev => prev.filter(booking => booking.id !== id));
-        alert('Booking cancelled successfully!');
+        toast.success('Booking cancelled successfully!');
       } catch (err) {
         console.error('Error cancelling appointment:', err);
-        alert('Failed to cancel booking. Please try again.');
+        toast.error('Failed to cancel booking. Please try again.');
       }
     }
   };

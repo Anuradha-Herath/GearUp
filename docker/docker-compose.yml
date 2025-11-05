@@ -36,9 +36,9 @@ services:
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
       MYSQL_INIT_CONNECT: 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci'
     
-    # Only expose database port internally (not to host)
-    expose:
-      - "3306"
+    # Expose database port to host for development (use internal only in production)
+    ports:
+      - "${DB_PORT:-3306}:3306"
     
     # Mount volumes for persistence and initialization scripts
     volumes:

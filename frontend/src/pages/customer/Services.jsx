@@ -1,104 +1,77 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Services = () => {
   const navigate = useNavigate();
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const serviceImageStyles = [
-    { backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBEdAZPDIiLuWjplYv5ckzTsldXMTR7mlIc2NjC9MTNlSjoTYGBogXhbEB5yaT-fWd5jE7mMBfjXbpQuAKie2xRHAlfNHZvHzgPiYJZDCsck4zR3TpN8sk4DTOBd_UPkXGb4PKS8hNmgnpQZLCfHFjwQaqR42BZ_K7Xd2oXHYBO9sZ__tfEXZai05zNKaA8Ew9L_jxxGNyBpiG0z9K5R1ZEcG6BPPAz8r712hKOnEOuTH_VSozD7QOcBt3DO-jfm-wRm0nTBC35ntE")' },
-    { backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDWJupyNT-yhmebTACULVgBWMDvOIbUguhxDx-g3zEvBhGMYcHVKqfapCQ9nlrIbRhia_K95an9QJI2e4AW2MtkOmHxm8ETi4gfrMXC-w3md-tGyRhGHyYiTFU6AkoNuBv-7WxKu4IdoXUAk5g5W-D8lHgy8Bl9SBnrmA0CIA2VGM3Jv-wzFfzEi7BWDH4xnnKrytz0a_keNS6b0-NHbUGzU2479FSbW4c38oWrkfmbbDk7xe_yUMSVasQs_gsbvah6A0T5XzOitF8")' },
-    { backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDpPGTo_qRDnKwucud-XKBEQLdI4EiXYF15RrWkabBqh0jderUfvhCzDjyrBRxAZFIPpzZDeyhDF9fF8L1FoBYl2MPUoifTjIVv_i37K5g1mAc5NHgQZC7iAFK6vA0bOYrJVeJ_i3Y0qexzrpbLxsYuXIItEyCAmhEPnmJjMX2kzDd56uGm1ETxNKTIpcEt34vOjYbx2gkj_hNazi6ehR-yxwN7evLQbD1tiotjEHO44QHH4cXCx976NpZK-xWhXFQDoYXcStz-R3Q")' },
-    { backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDayaQ5foAaPi9rfIzk06AVjzya29YzR58bT-FCoFO0UdkUoNxrsAwZ9JYpjCZxGsEP8xHBP6td_gJZlBgxbT8ePSsOHMRDCHgxDXgo4jmiQYYhEqDz2tFhrsu80pu40trYFUL8fH5asbLsY_5-3q3ww_rAabHHagVwcQRhVpxxdLT96h5eEzL2WPkSxFN2lvfpY1CGUmln6hQJ9-1EFIuNY2MfVvJhJI4Sj5gpA_vWcGiSE4bHedmjMqRtC22tQCIALyMxTbW8fnE")' },
-    { backgroundImage: 'url("https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80")' },
-    { backgroundImage: 'url("https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80")' },
-    { backgroundImage: 'url("https://images.unsplash.com/photo-1493238792000-8113da705763?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80")' },
-    { backgroundImage: 'url("https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80")' },
-  ];
+  // Fetch services from backend
+  useEffect(() => {
+    fetchServices();
+  }, []);
 
-  const services = [
-    {
-      id: 1,
-      title: 'Oil Change',
-      description: 'Complete oil change with premium synthetic oil and filter replacement',
-      detailedDescription: 'Our comprehensive oil change service includes premium synthetic oil, high-quality filter replacement, and complete fluid level inspection. We use only the finest oils and filters to ensure optimal engine performance and longevity. Our certified technicians perform thorough inspections to identify potential issues before they become costly problems.',
-      duration: '30 mins',
-      price: '$49.99',
-      style: serviceImageStyles[0]
-    },
-    {
-      id: 2,
-      title: 'Brake Service',
-      description: 'Comprehensive brake inspection, pad replacement, and rotor resurfacing',
-      detailedDescription: 'Safety is our top priority. Our brake service includes comprehensive inspection of brake pads, rotors, calipers, and brake fluid. We provide professional brake pad replacement, rotor resurfacing or replacement when needed, and complete system testing to ensure your safety on the road.',
-      duration: '1 hour',
-      price: '$149.99',
-      style: serviceImageStyles[1]
-    },
-    {
-      id: 3,
-      title: 'Tire Service',
-      description: 'Tire rotation, balancing, alignment, and seasonal tire changes',
-      detailedDescription: 'Complete tire care including rotation, balancing, and wheel alignment services. We also provide seasonal tire changes, tire pressure monitoring, and tire replacement with premium brands. Our advanced alignment equipment ensures optimal handling and tire longevity.',
-      duration: '45 mins',
-      price: '$89.99',
-      style: serviceImageStyles[2]
-    },
-    {
-      id: 4,
-      title: 'Engine Diagnostics',
-      description: 'Advanced diagnostic tools to identify and resolve engine issues quickly',
-      detailedDescription: 'State-of-the-art diagnostic equipment to quickly identify engine issues and provide accurate solutions. Our comprehensive engine diagnostic service includes computer scanning, performance testing, and detailed analysis of engine components to ensure optimal performance.',
-      duration: '1 hour',
-      price: '$99.99',
-      style: serviceImageStyles[3]
-    },
-    {
-      id: 5,
-      title: 'Battery Service',
-      description: 'Battery testing, replacement, and charging system diagnosis',
-      detailedDescription: 'Complete battery and charging system service including battery testing, replacement with premium batteries, alternator inspection, and charging system diagnosis. We ensure your vehicle starts reliably in all weather conditions.',
-      duration: '30 mins',
-      price: '$79.99',
-      style: serviceImageStyles[4]
-    },
-    {
-      id: 6,
-      title: 'Air Filter Replacement',
-      description: 'Cabin and engine air filter replacement for better air quality',
-      detailedDescription: 'Professional air filter replacement service for both cabin and engine air filters. Clean air filters improve engine performance, fuel efficiency, and interior air quality. We use high-quality filters designed for your specific vehicle.',
-      duration: '20 mins',
-      price: '$39.99',
-      style: serviceImageStyles[5]
-    },
-    {
-      id: 7,
-      title: 'Cooling System Service',
-      description: 'Radiator flush, coolant replacement, and system pressure test',
-      detailedDescription: 'Comprehensive cooling system maintenance including radiator flush, coolant replacement, thermostat inspection, and pressure testing. We prevent overheating issues and ensure optimal engine temperature regulation.',
-      duration: '1.5 hours',
-      price: '$119.99',
-      style: serviceImageStyles[6]
-    },
-    {
-      id: 8,
-      title: 'Transmission Service',
-      description: 'Transmission fluid change, filter replacement, and system inspection',
-      detailedDescription: 'Complete transmission service including fluid change with premium transmission fluid, filter replacement, and comprehensive system inspection. We ensure smooth shifting and extend transmission life.',
-      duration: '1.5 hours',
-      price: '$169.99',
-      style: serviceImageStyles[7]
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const response = await fetch('http://localhost:8080/api/customer/services', {
+        headers: headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch services');
+      }
+      
+      const data = await response.json();
+      console.log('Fetched services:', data);
+      
+      // Map backend data to frontend format with conditional image handling
+      const mappedServices = data.map((service) => ({
+        id: service.id,
+        title: service.title,
+        description: service.shortDescription,
+        detailedDescription: service.includedSubservices || service.shortDescription,
+        duration: service.estimatedDuration || 'Contact us',
+        price: `$${service.estimatedPrice.toFixed(2)}`,
+        imageUrl: service.imageUrl || null // Assuming your backend returns imageUrl field
+      }));
+      
+      setServices(mappedServices);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      setError('Failed to load services. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const ServiceCard = ({ service, onClick }) => (
     <div 
       onClick={onClick}
       className="flex flex-col overflow-hidden rounded-lg bg-primary/10 dark:bg-primary/20 shadow-md transition-all hover:shadow-2xl hover:scale-105 border border-primary/20 cursor-pointer"
     >
-      <div className="aspect-video w-full bg-cover bg-center" style={service.style}></div>
+      {/* Conditional image rendering */}
+      {service.imageUrl ? (
+        <div 
+          className="aspect-video w-full bg-cover bg-center"
+          style={{ backgroundImage: `url("${service.imageUrl}")` }}
+        ></div>
+      ) : (
+        <div className="aspect-video w-full bg-gray-200 flex items-center justify-center">
+          <span className="text-gray-400 text-sm">No Image Available</span>
+        </div>
+      )}
+      
       <div className="p-6">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{service.title}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-grey-900">{service.title}</h3>
           <span className="text-lg font-bold text-primary">{service.price}</span>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{service.description}</p>
@@ -116,6 +89,34 @@ const Services = () => {
     navigate(`/service/${service.id}`, { state: { service } });
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-red-800 mb-2">Error Loading Services</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchServices}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Services Section */}
@@ -126,7 +127,7 @@ const Services = () => {
             <p className="mt-4 text-lg text-gray-600">We offer a wide range of services to keep your vehicle running smoothly and safely.</p>
           </div>
 
-          {/* Services Grid - Using same style as Features.jsx */}
+          {/* Services Grid */}
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {services.map((service) => (
               <ServiceCard 

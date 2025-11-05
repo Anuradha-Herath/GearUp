@@ -1,115 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
+import { useToast } from '../../context/ToastContext';
 
 const History = () => {
-  // Mock data for finished services
-  const [finishedServices] = useState([
-    {
-      id: 1,
-      vehicleCompany: 'Toyota',
-      model: 'Corolla',
-      year: 2018,
-      vehicleNumber: 'TOY-1111',
-      serviceCategory: 'Full Service',
-      date: '2025-10-28',
-      time: '10:00 AM',
-      estimatedPrice: 150.00,
-      actualPrice: 145.00,
-      status: 'finished',
-      completedDate: '2025-10-28',
-      customerName: 'Michael Chen',
-      customerPhone: '+1-234-567-8908',
-      notes: 'Service completed successfully. All parts replaced as needed.'
-    },
-    {
-      id: 2,
-      vehicleCompany: 'Honda',
-      model: 'Accord',
-      year: 2020,
-      vehicleNumber: 'HON-2222',
-      serviceCategory: 'Brake Replacement',
-      date: '2025-10-27',
-      time: '2:00 PM',
-      estimatedPrice: 300.00,
-      actualPrice: 320.00,
-      status: 'finished',
-      completedDate: '2025-10-27',
-      customerName: 'Jessica Taylor',
-      customerPhone: '+1-234-567-8909',
-      notes: 'Additional work required on rear brake pads. Customer approved extra cost.'
-    },
-    {
-      id: 3,
-      vehicleCompany: 'Nissan',
-      model: 'Altima',
-      year: 2019,
-      vehicleNumber: 'NIS-3333',
-      serviceCategory: 'Oil Change',
-      date: '2025-10-26',
-      time: '9:00 AM',
-      estimatedPrice: 70.00,
-      actualPrice: 70.00,
-      status: 'finished',
-      completedDate: '2025-10-26',
-      customerName: 'Chris Martinez',
-      customerPhone: '+1-234-567-8910',
-      notes: 'Routine oil change completed.'
-    },
-    {
-      id: 4,
-      vehicleCompany: 'Chevrolet',
-      model: 'Malibu',
-      year: 2021,
-      vehicleNumber: 'CHV-4444',
-      serviceCategory: 'Engine Tune-up',
-      date: '2025-10-25',
-      time: '11:00 AM',
-      estimatedPrice: 200.00,
-      actualPrice: 195.00,
-      status: 'finished',
-      completedDate: '2025-10-25',
-      customerName: 'Amanda White',
-      customerPhone: '+1-234-567-8911',
-      notes: 'Engine running smoothly after tune-up.'
-    },
-    {
-      id: 5,
-      vehicleCompany: 'Volkswagen',
-      model: 'Jetta',
-      year: 2020,
-      vehicleNumber: 'VW-5555',
-      serviceCategory: 'Tire Replacement',
-      date: '2025-10-24',
-      time: '1:30 PM',
-      estimatedPrice: 400.00,
-      actualPrice: 400.00,
-      status: 'finished',
-      completedDate: '2025-10-24',
-      customerName: 'Daniel Garcia',
-      customerPhone: '+1-234-567-8912',
-      notes: 'All four tires replaced with premium brand.'
-    },
-    {
-      id: 6,
-      vehicleCompany: 'Hyundai',
-      model: 'Elantra',
-      year: 2019,
-      vehicleNumber: 'HYU-6666',
-      serviceCategory: 'AC Service',
-      date: '2025-10-23',
-      time: '3:00 PM',
-      estimatedPrice: 120.00,
-      actualPrice: 110.00,
-      status: 'finished',
-      completedDate: '2025-10-23',
-      customerName: 'Sophia Lee',
-      customerPhone: '+1-234-567-8913',
-      notes: 'AC system cleaned and recharged.'
-    }
-  ]);
-
+  const [finishedServices, setFinishedServices] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const toast = useToast();
+
+  // Fetch finished services from backend
+  useEffect(() => {
+    fetchFinishedServices();
+  }, []);
+
+  const fetchFinishedServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const appointments = await employeeService.getAllAppointmentsForManagement();
+      
+      // Filter only finished appointments
+      const finishedAppointments = appointments.filter(
+        appointment => appointment.status.toUpperCase() === 'FINISHED'
+      );
+      
+      // Transform the data to match the expected format
+      const transformedServices = finishedAppointments.map(appointment => ({
+        id: appointment.id,
+        vehicleCompany: appointment.vehicle?.company || 'Unknown',
+        model: appointment.vehicle?.model || 'Unknown',
+        year: appointment.vehicle?.year || 'Unknown',
+        vehicleNumber: appointment.vehicle?.vehicleNumber || 'Unknown',
+        serviceCategory: appointment.service?.title || 'Unknown Service',
+        date: appointment.date,
+        time: appointment.time,
+        estimatedPrice: appointment.estimatedCost || appointment.service?.estimatedPrice || 0,
+        actualPrice: appointment.estimatedCost || appointment.service?.estimatedPrice || 0,
+        status: 'finished',
+        completedDate: appointment.date,
+        customerName: appointment.customer?.name || appointment.customer?.username || 'Unknown Customer',
+        customerPhone: appointment.customer?.phone || 'Not provided',
+        notes: appointment.additionalNote || 'Service completed successfully.',
+        serviceDescription: appointment.service?.shortDescription || ''
+      }));
+
+      // Sort by date (newest first)
+      const sortedServices = transformedServices.sort((a, b) => {
+        const dateTimeA = new Date(`${a.date} ${a.time}`);
+        const dateTimeB = new Date(`${b.date} ${b.time}`);
+        return dateTimeB - dateTimeA;
+      });
+
+      setFinishedServices(sortedServices);
+    } catch (err) {
+      console.error('Error fetching finished services:', err);
+      setError('Failed to load service history. Please try again.');
+      toast.error('Failed to load service history');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredServices = finishedServices.filter(service => 
     service.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,7 +81,52 @@ const History = () => {
   };
 
   const totalRevenue = finishedServices.reduce((sum, service) => sum + service.actualPrice, 0);
-  const avgServicePrice = totalRevenue / finishedServices.length;
+  const avgServicePrice = finishedServices.length > 0 ? totalRevenue / finishedServices.length : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Service History</h1>
+          <p className="text-gray-600 mt-2">View all completed services and past orders</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading service history...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Service History</h1>
+          <p className="text-gray-600 mt-2">View all completed services and past orders</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <button 
+                onClick={fetchFinishedServices}
+                className="mt-2 text-sm text-red-800 underline hover:no-underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -181,9 +179,16 @@ const History = () => {
       </div>
 
       {/* Services Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      {finishedServices.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="text-6xl mb-4">📋</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Finished Services</h3>
+          <p className="text-gray-600">There are no completed services in the history yet.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -250,7 +255,8 @@ const History = () => {
             <p className="text-gray-600">Try adjusting your search terms.</p>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Details Modal */}
       {showModal && selectedService && (

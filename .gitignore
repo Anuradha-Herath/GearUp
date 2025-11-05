@@ -10,6 +10,15 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+### CRITICAL: Environment Files - NEVER COMMIT THESE ###
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+**/.env
+**/**.env
+
 # Package Files #
 *.jar
 *.war

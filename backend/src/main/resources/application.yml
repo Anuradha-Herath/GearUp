@@ -71,6 +71,9 @@ sendgrid:
   from:
     email: ${SENDGRID_FROM_EMAIL:noreply@autoserve.com}
 
+app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+
 ---
 spring:
   config:
@@ -90,6 +93,9 @@ sendgrid:
     key: ${SENDGRID_API_KEY}
   from:
     email: ${SENDGRID_FROM_EMAIL}
+
+app:
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost}
 
 ---
 spring:

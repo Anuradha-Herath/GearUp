@@ -1,5 +1,6 @@
 package com.autoserve.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -25,8 +26,9 @@ public class TimeLog {
     @JoinColumn(name = "employee_id", nullable = false, referencedColumnName = "id")
     private User employee;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id", nullable = false, referencedColumnName = "id")
+    @JsonBackReference
     private Appointment appointment;
 
     // Manual getters and setters for compilation if Lombok fails
@@ -76,5 +78,13 @@ public class TimeLog {
 
     public void setAppointment(Appointment appointment) {
         this.appointment = appointment;
+    }
+
+    // Calculate duration in minutes
+    public Long getDuration() {
+        if (startTime != null && endTime != null) {
+            return java.time.Duration.between(startTime, endTime).toMinutes();
+        }
+        return null;
     }
 }

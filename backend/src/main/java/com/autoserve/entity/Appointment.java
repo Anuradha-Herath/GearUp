@@ -1,9 +1,11 @@
 package com.autoserve.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -45,4 +47,8 @@ public class Appointment {
 
     @Column(columnDefinition = "TEXT")
     private String serviceNotes;
+
+    @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<TimeLog> timeLogs;
 }

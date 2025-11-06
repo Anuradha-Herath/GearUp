@@ -1,73 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Customers = () => {
-  // Mock data for confirmed customers
-  const [customers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      phone: '+1-234-567-8900',
-      address: '123 Main St, City, State 12345',
-      totalBookings: 5,
-      lastService: '2025-10-28',
-      vehicleCount: 2
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@email.com',
-      phone: '+1-234-567-8901',
-      address: '456 Oak Ave, City, State 12346',
-      totalBookings: 3,
-      lastService: '2025-10-25',
-      vehicleCount: 1
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      email: 'mike.j@email.com',
-      phone: '+1-234-567-8902',
-      address: '789 Pine Rd, City, State 12347',
-      totalBookings: 8,
-      lastService: '2025-10-30',
-      vehicleCount: 3
-    },
-    {
-      id: 4,
-      name: 'Sarah Williams',
-      email: 'sarah.w@email.com',
-      phone: '+1-234-567-8903',
-      address: '321 Elm St, City, State 12348',
-      totalBookings: 2,
-      lastService: '2025-10-20',
-      vehicleCount: 1
-    },
-    {
-      id: 5,
-      name: 'Robert Brown',
-      email: 'robert.b@email.com',
-      phone: '+1-234-567-8904',
-      address: '654 Maple Dr, City, State 12349',
-      totalBookings: 6,
-      lastService: '2025-10-27',
-      vehicleCount: 2
-    },
-    {
-      id: 6,
-      name: 'Emily Davis',
-      email: 'emily.d@email.com',
-      phone: '+1-234-567-8905',
-      address: '987 Cedar Ln, City, State 12350',
-      totalBookings: 4,
-      lastService: '2025-10-26',
-      vehicleCount: 1
-    }
-  ]);
-
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  // Fetch customers from backend
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const response = await fetch('http://localhost:8080/api/employee/customers', {
+        headers: headers
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      
+      const data = await response.json();
+      console.log('Fetched customers:', data);
+      setCustomers(data);
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+      setError('Failed to load customers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,6 +56,41 @@ const Customers = () => {
     setShowModal(false);
     setSelectedCustomer(null);
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <div className="text-4xl mb-2">⚠️</div>
+        <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Customers</h3>
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={fetchCustomers}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -160,14 +167,10 @@ const Customers = () => {
               <div className="p-4 space-y-3">
                 <div className="text-sm">
                   <p className="text-gray-500">Phone</p>
-                  <p className="font-medium text-gray-900">{customer.phone}</p>
-                </div>
-                <div className="text-sm">
-                  <p className="text-gray-500">Address</p>
-                  <p className="font-medium text-gray-900 text-xs">{customer.address}</p>
+                  <p className="font-medium text-gray-900">{customer.phone || 'Not provided'}</p>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
                   <div className="text-center">
                     <p className="text-xs text-gray-500">Bookings</p>
                     <p className="text-lg font-bold text-primary">{customer.totalBookings}</p>
@@ -175,10 +178,6 @@ const Customers = () => {
                   <div className="text-center">
                     <p className="text-xs text-gray-500">Vehicles</p>
                     <p className="text-lg font-bold text-primary">{customer.vehicleCount}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Last Visit</p>
-                    <p className="text-xs font-medium text-gray-900">{customer.lastService}</p>
                   </div>
                 </div>
               </div>
@@ -217,19 +216,10 @@ const Customers = () => {
                   <p className="text-sm text-gray-500">Email</p>
                   <p className="font-medium text-gray-900">{selectedCustomer.email}</p>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-medium text-gray-900">{selectedCustomer.phone}</p>
+                  <p className="font-medium text-gray-900">{selectedCustomer.phone || 'Not provided'}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Last Service</p>
-                  <p className="font-medium text-gray-900">{selectedCustomer.lastService}</p>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-sm text-gray-500">Address</p>
-                <p className="font-medium text-gray-900">{selectedCustomer.address}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">

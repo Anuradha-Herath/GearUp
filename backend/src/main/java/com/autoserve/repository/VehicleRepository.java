@@ -11,4 +11,5 @@ import java.util.List;
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     List<Vehicle> findByCustomer(User customer);
     List<Vehicle> findByCustomerId(Long customerId);
+    long countByCustomerId(Long customerId);
 }

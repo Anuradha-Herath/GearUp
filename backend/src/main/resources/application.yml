@@ -2,8 +2,10 @@ spring:
   profiles:
     active: dev
   config:
-    # Load variables from .env if present (no error if missing)
-    import: optional:file:backend/.env[.properties]
+    # Load variables from .env/.env.local in backend directory (no error if missing)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:.env.local[.properties]
 
 server:
   port: 8080

@@ -8,7 +8,9 @@ import com.autoserve.repository.EmployeeRepository;
 import com.autoserve.repository.TimeLogRepository;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.repository.VehicleRepository;
-import org.springframework.stereotype.Service;
+// This duplicate class was added earlier but the primary ReportService lives in com.autoserve.service
+// to avoid a bean name conflict do not register this class as a Spring bean.
+// import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -16,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Service
 public class ReportService {
 
     private final AppointmentRepository appointmentRepository;

@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,11 +41,10 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
-                .requestMatchers("/api/customer/**").permitAll() // Temporarily allow customer endpoints for local dev/testing
-                .requestMatchers("/api/reports/**").permitAll() // allow public access to reporting endpoints
-                .requestMatchers("/api/appointments/public").permitAll() // public appointments endpoint for frontend
+                // Permit CORS preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // During local development allow all /api requests (temporary)
+                .requestMatchers("/api/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll() // Allow actuator endpoints for local health checks
                 .anyRequest().authenticated()
             )

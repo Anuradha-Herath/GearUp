@@ -31,7 +31,7 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+  url: ${DATABASE_URL:jdbc:mysql://localhost:3306/autoserve?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DATABASE_USERNAME:root}
     password: ${DATABASE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -22,7 +22,7 @@ const MyBookings = () => {
         setLoading(true);
         const appointments = await appointmentService.getMyAppointments();
         
-        // Transform the data to match the expected format
+        // Transform the data to match the expected format, keeping timeLogs
         const transformedBookings = appointments.map(appointment => ({
           id: appointment.id,
           service: appointment.service?.title || 'Unknown Service',
@@ -34,7 +34,8 @@ const MyBookings = () => {
           notes: appointment.additionalNote || appointment.serviceNotes || '',
           vehicle: `${appointment.vehicle?.company || ''} ${appointment.vehicle?.model || ''}`.trim(),
           vehicleNumber: appointment.vehicle?.vehicleNumber || '',
-          serviceDescription: appointment.service?.shortDescription || ''
+          serviceDescription: appointment.service?.shortDescription || '',
+          timeLogs: appointment.timeLogs || [] // Keep time logs
         }));
 
         // Sort by date and time descending (most recent first - last booking shows first)
@@ -213,6 +214,71 @@ const MyBookings = () => {
                           <p className="font-medium text-sm">{booking.notes || 'No notes'}</p>
                         </div>
                       </div>
+
+                      {/* Time Logs Section */}
+                      {booking.timeLogs && booking.timeLogs.length > 0 && (
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Work Progress ({booking.timeLogs.length} log{booking.timeLogs.length !== 1 ? 's' : ''})
+                          </h4>
+                          <div className="space-y-2">
+                            {booking.timeLogs.map((log, index) => (
+                              <div 
+                                key={index} 
+                                className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:bg-gray-100 transition-colors"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">{log.description}</p>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      👤 {log.employee?.username || 'Unknown Employee'}
+                                    </p>
+                                  </div>
+                                  <div className="text-right ml-4">
+                                    <div className="text-xs text-gray-500">
+                                      <p className="font-medium">Started:</p>
+                                      <p>
+                                        {new Date(log.startTime).toLocaleString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    </div>
+                                    {log.endTime ? (
+                                      <>
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          <p className="font-medium">Finished:</p>
+                                          <p>
+                                            {new Date(log.endTime).toLocaleString('en-US', {
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </p>
+                                        </div>
+                                        <p className="text-xs font-semibold text-[#7A85C1] mt-1">
+                                          ⏱️ {log.duration} mins
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <p className="text-xs font-semibold text-green-600 mt-1 flex items-center">
+                                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                        In Progress
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex justify-end space-x-3">
                         {(booking.status.toLowerCase() === 'requested' || booking.status.toLowerCase() === 'confirmed') ? (

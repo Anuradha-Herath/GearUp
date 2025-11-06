@@ -11,9 +11,34 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        // First try local validation (fast)
+        const localUser = authService.getCurrentUser();
+        
+        if (localUser) {
+          // If we have a local user, set it immediately for fast loading
+          setUser(localUser);
+          
+          // Then validate with server in background
+          try {
+            const validatedUser = await authService.validateCurrentUser();
+            if (validatedUser) {
+              setUser(validatedUser);
+            } else {
+              // Server validation failed, clear user
+              setUser(null);
+            }
+          } catch (error) {
+            // Server validation failed but local token is valid, keep local user
+            console.warn('Server validation failed, keeping local user:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     initAuth();
@@ -24,7 +49,8 @@ export const AuthProvider = ({ children }) => {
     setUser({
       id: userData.id,
       username: userData.username,
-      email: userData.email
+      email: userData.email,
+      role: userData.role || 'USER'
     });
   };
 

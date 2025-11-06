@@ -80,13 +80,30 @@ const authService = {
     localStorage.removeItem('user');
   },
 
-  getCurrentUser: async () => {
+  getCurrentUser: () => {
     const token = localStorage.getItem('token');
     if (!token) return null;
 
-    // You might want to validate the token with the backend
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+      // Check if token is expired (basic JWT validation)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const isExpired = payload.exp * 1000 < Date.now();
+      
+      if (isExpired) {
+        // Token expired, clear storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return null;
+      }
+
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : null;
+    } catch (error) {
+      // Invalid token format, clear storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
   },
 
   verifyEmail: async (code) => {
@@ -107,6 +124,56 @@ const authService = {
       return { ok: response.ok, status: response.ok ? 'success' : 'error', message: text };
     }
   },
+
+  getAuthHeaders: () => {
+    const token = localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  },
+
+  isTokenValid: () => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 > Date.now();
+    } catch (error) {
+      return false;
+    }
+  },
+
+  validateCurrentUser: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        // Token is invalid, clear storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return null;
+      }
+
+      const userData = await response.json();
+      
+      // Update stored user data
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      return userData;
+    } catch (error) {
+      // Network error or server error, fall back to local validation
+      console.warn('Failed to validate token with server, using local validation:', error);
+      return authService.getCurrentUser();
+    }
+  }
 };
 
 export default authService;

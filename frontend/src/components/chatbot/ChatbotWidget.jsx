@@ -75,12 +75,37 @@ const ChatbotWidget = () => {
     setInputValue(suggestion);
   };
 
+  const formatMessageWithLinks = (text) => {
+    let formatted = text;
+    
+    // Convert markdown links [text](url) to HTML links
+    formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-[#7A85C1] hover:text-[#6a75a8] underline font-medium">${text}</a>`;
+    });
+    
+    // Convert plain URLs to clickable links (but not if already in an <a> tag)
+    formatted = formatted.replace(/(^|[^">])(https?:\/\/[^\s<]+)/g, (match, prefix, url) => {
+      return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-[#7A85C1] hover:text-[#6a75a8] underline">${url}</a>`;
+    });
+    
+    // Convert **bold** to <strong>
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold">$1</strong>');
+    
+    // Convert *italic* to <em>
+    formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
+    
+    // Convert line breaks
+    formatted = formatted.replace(/\n/g, '<br/>');
+    
+    return formatted;
+  };
+
   return (
     <>
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-[9999] w-16 h-16 bg-[#7A85C1] rounded-full shadow-lg hover:shadow-xl hover:bg-[#6a75a8] transform hover:scale-110 transition-all duration-300 flex items-center justify-center group"
         aria-label="Open chat"
       >
         {isOpen ? (
@@ -122,14 +147,14 @@ const ChatbotWidget = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slideUp">
+        <div className="fixed bottom-24 right-6 z-[9999] w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slideUp">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+          <div className="bg-[#7A85C1] p-4 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-blue-600"
+                    className="w-6 h-6 text-[#7A85C1]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -144,7 +169,7 @@ const ChatbotWidget = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">AutoServe AI</h3>
-                  <p className="text-xs text-blue-100">Always here to help</p>
+                  <p className="text-xs text-white opacity-90">Always here to help</p>
                 </div>
               </div>
               <button
@@ -178,14 +203,19 @@ const ChatbotWidget = () => {
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                     message.type === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      ? 'bg-[#7A85C1] text-white'
                       : 'bg-white text-gray-800 shadow-md'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  <div 
+                    className="text-sm whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ 
+                      __html: formatMessageWithLinks(message.text) 
+                    }}
+                  />
                   <p
                     className={`text-xs mt-1 ${
-                      message.type === 'user' ? 'text-blue-100' : 'text-gray-400'
+                      message.type === 'user' ? 'text-white opacity-80' : 'text-gray-400'
                     }`}
                   >
                     {message.timestamp.toLocaleTimeString([], {
@@ -201,9 +231,9 @@ const ChatbotWidget = () => {
               <div className="flex justify-start animate-fadeIn">
                 <div className="bg-white rounded-2xl px-4 py-3 shadow-md">
                   <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                    <div className="w-2 h-2 bg-[#7A85C1] rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-[#7A85C1] rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-[#7A85C1] rounded-full animate-bounce delay-200"></div>
                   </div>
                 </div>
               </div>
@@ -221,7 +251,7 @@ const ChatbotWidget = () => {
                   <button
                     key={index}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-[#7A85C1] hover:text-white text-gray-700 px-3 py-1 rounded-full transition-colors"
                   >
                     {suggestion}
                   </button>
@@ -239,13 +269,13 @@ const ChatbotWidget = () => {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your question..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#7A85C1] focus:border-transparent"
                 disabled={isLoading}
               />
               <button
                 onClick={handleSend}
                 disabled={!inputValue.trim() || isLoading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="bg-[#7A85C1] text-white p-2 rounded-full hover:bg-[#6a75a8] hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <svg
                   className="w-6 h-6"

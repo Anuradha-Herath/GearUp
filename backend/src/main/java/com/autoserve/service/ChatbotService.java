@@ -21,10 +21,19 @@ public class ChatbotService {
                 return "Please provide a valid question.";
             }
             
-            // Step 1: Search for relevant context in ChromaDB
-            List<String> relevantContext = vectorDBService.searchRelevantContext(query.getQuery(), 5);
+            String userQuery = query.getQuery().toLowerCase();
             
-            System.out.println("Found " + relevantContext.size() + " relevant context documents");
+            // Determine how many results to fetch based on query type
+            int limit = 5; // default
+            if (userQuery.contains("service") || userQuery.contains("price") || 
+                userQuery.contains("offer") || userQuery.contains("cost")) {
+                limit = 15; // Get more results for service/price queries
+            }
+            
+            // Step 1: Search for relevant context
+            List<String> relevantContext = vectorDBService.searchRelevantContext(query.getQuery(), limit);
+            
+            System.out.println("Found " + relevantContext.size() + " relevant context documents for: " + query.getQuery());
             
             // Step 2: Send query + context to Gemini
             String response = geminiService.generateResponse(query.getQuery(), relevantContext);

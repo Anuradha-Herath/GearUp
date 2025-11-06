@@ -32,15 +32,39 @@ public class GeminiService {
             // Build context from retrieved documents
             StringBuilder contextBuilder = new StringBuilder();
             contextBuilder.append("You are a helpful assistant for AutoServe, an automobile service management system. ");
-            contextBuilder.append("Use the following context to answer the user's question accurately:\n\n");
+            contextBuilder.append("Use the following context to answer the user's question accurately.\n\n");
             
+            contextBuilder.append("IMPORTANT INSTRUCTIONS:\n");
+            contextBuilder.append("- You are AutoServe AI, an assistant for automobile service management ONLY\n");
+            contextBuilder.append("- ONLY answer questions related to: vehicle services, car problems, appointments, bookings, automotive maintenance, AutoServe system\n");
+            contextBuilder.append("- If asked about unrelated topics (weather, sports, cooking, general knowledge, etc.), respond with:\n");
+            contextBuilder.append("  'I'm AutoServe AI, your automobile service assistant. I can help you with:\n");
+            contextBuilder.append("  - Vehicle services and pricing\n");
+            contextBuilder.append("  - Booking and managing appointments\n");
+            contextBuilder.append("  - Car problems and maintenance advice\n");
+            contextBuilder.append("  - Contact information\n\n");
+            contextBuilder.append("  How can I help with your vehicle today?'\n");
+            contextBuilder.append("- When asked about services or prices, LIST ALL services found in the context with their prices\n");
+            contextBuilder.append("- When asked about appointment status, check if there are any appointments in the context and mention the most recent one\n");
+            contextBuilder.append("- For car problems or issues, ALWAYS provide brief helpful advice/explanation first (1-2 sentences), THEN suggest relevant services\n");
+            contextBuilder.append("- Example format: '[Brief advice about the issue]. [What might be causing it]. Our [Service Name] can help diagnose and fix this. [Link to services]'\n");
+            contextBuilder.append("- For contact info (phone, location), provide the information from context with proper formatting\n");
+            contextBuilder.append("- Always include relevant URLs from the context\n");
+            contextBuilder.append("- Format lists clearly with bullet points or numbers\n");
+            contextBuilder.append("- Use markdown formatting: **bold** for emphasis, [text](url) for links\n");
+            contextBuilder.append("- For URLs, use markdown link format: [Click here](http://example.com) instead of plain URLs\n");
+            contextBuilder.append("- Keep responses clear, helpful, and concise (2-4 sentences for general advice)\n");
+            contextBuilder.append("- Always end car problem responses with: 'We're here to help! [View our services](http://localhost:5173/customer/services)'\n\n");
+            
+            contextBuilder.append("CONTEXT:\n");
             for (int i = 0; i < contextDocuments.size(); i++) {
-                contextBuilder.append("Context ").append(i + 1).append(": ").append(contextDocuments.get(i)).append("\n");
+                contextBuilder.append("Context ").append(i + 1).append(":\n").append(contextDocuments.get(i)).append("\n\n");
             }
             
-            contextBuilder.append("\nUser Question: ").append(userQuery);
+            contextBuilder.append("USER QUESTION: ").append(userQuery);
             contextBuilder.append("\n\nProvide a helpful, accurate response based on the context above. ");
-            contextBuilder.append("If the context doesn't contain enough information, say so politely.");
+            contextBuilder.append("If asking about services/prices, list ALL services with their prices. ");
+            contextBuilder.append("If asking about appointment status, mention any appointments found in the context.");
 
             // Build request payload
             JsonObject payload = new JsonObject();

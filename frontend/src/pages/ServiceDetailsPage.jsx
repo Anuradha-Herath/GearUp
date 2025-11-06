@@ -97,6 +97,17 @@ const ServiceDetailsPage = ({ hideHeader = false, isAuthenticatedProp }) => {
         </button>
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Service Image */}
+          {service.image && (
+            <div className="w-full h-80 overflow-hidden">
+              <img
+                src={service.image}
+                alt={service.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
           {/* Service Header */}
           <div className="bg-gradient-to-r from-primary to-primary/80 py-12 px-6 text-white">
             <h1 className="text-4xl font-bold mb-4">{service.title}</h1>

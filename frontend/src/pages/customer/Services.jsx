@@ -40,7 +40,7 @@ const Services = () => {
         detailedDescription: service.includedSubservices || service.shortDescription,
         duration: service.estimatedDuration || 'Contact us',
         price: `$${service.estimatedPrice.toFixed(2)}`,
-        imageUrl: service.imageUrl || null // Assuming your backend returns imageUrl field
+        imageUrl: service.image || null // Use the image field from backend (UploadThing URL)
       }));
       
       setServices(mappedServices);

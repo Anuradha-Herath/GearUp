@@ -11,9 +11,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportController.class);
 
     private final ReportService reportService;
 
@@ -22,37 +26,64 @@ public class ReportController {
     }
 
     // Return analytics as JSON
-    @GetMapping("/appointments")
-    public ResponseEntity<?> appointments() {
-        Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
-        if (analytics == null || analytics.isEmpty()) {
-            return ResponseEntity.ok(Map.of("message", "No report data found."));
+    @GetMapping(value = "/appointments", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> appointments(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                          @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate,
+                                          @org.springframework.web.bind.annotation.RequestParam(required = false) String status) {
+        try {
+            log.info("/api/reports/appointments called with startDate={} endDate={} status={}", startDate, endDate, status);
+            java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+            com.autoserve.dto.report.AppointmentAnalyticsDto analytics = reportService.buildAppointmentAnalytics(sd, ed, status);
+            log.info("Built analytics: totalAppointments={} rows={}", analytics != null ? analytics.getTotalAppointments() : null, analytics != null && analytics.getRows() != null ? analytics.getRows().size() : null);
+            if (analytics == null) {
+                return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(Map.of("message", "No report data found."));
+            }
+            return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(analytics);
+        } catch (Exception ex) {
+            log.error("Failed to parse dates or build analytics", ex);
+            return ResponseEntity.badRequest().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(Map.of("message", "Invalid date format. Use ISO yyyy-MM-dd."));
         }
-        return ResponseEntity.ok(analytics);
     }
 
     // PDF export
     @GetMapping("/appointments/pdf")
-    public ResponseEntity<byte[]> appointmentsPdf() {
-        Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
-        byte[] pdf = reportService.generateAppointmentsPdf(analytics);
+    public ResponseEntity<byte[]> appointmentsPdf(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                  @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate,
+                                                  @org.springframework.web.bind.annotation.RequestParam(required = false) String status) {
+        try {
+            java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+            com.autoserve.dto.report.AppointmentAnalyticsDto analytics = reportService.buildAppointmentAnalytics(sd, ed, status);
+            byte[] pdf = reportService.generateAppointmentsPdf(analytics);
         String filename = "appointments-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".pdf";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new byte[0]);
+        }
     }
 
     // CSV export
     @GetMapping("/appointments/csv")
-    public ResponseEntity<byte[]> appointmentsCsv() {
-        Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
-        String csv = reportService.generateAppointmentsCsv(analytics);
+    public ResponseEntity<byte[]> appointmentsCsv(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                 @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate,
+                                                 @org.springframework.web.bind.annotation.RequestParam(required = false) String status) {
+        try {
+            java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+            java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+            com.autoserve.dto.report.AppointmentAnalyticsDto analytics = reportService.buildAppointmentAnalytics(sd, ed, status);
+            String csv = reportService.generateAppointmentsCsv(analytics);
         String filename = "appointments-report-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".csv";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(csv.getBytes());
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new byte[0]);
+        }
     }
 
     @GetMapping("/employees")

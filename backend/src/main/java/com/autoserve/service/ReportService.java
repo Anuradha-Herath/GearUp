@@ -49,24 +49,39 @@ public class ReportService {
      * Build a small analytics map used by the controller for exports and charts.
      * Keys: totalAppointments, statusCounts, totalRevenue, dailyCounts, rows
      */
-    public Map<String, Object> buildAppointmentAnalytics() {
-    List<Appointment> all = appointmentRepository.findAll();
-    List<Appointment> appointments = all == null ? Collections.emptyList() : all;
+    public com.autoserve.dto.report.AppointmentAnalyticsDto buildAppointmentAnalytics() {
+        return buildAppointmentAnalytics(null, null, null);
+    }
 
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("totalAppointments", all.size());
+    /**
+     * Build appointment analytics with optional filters.
+     * startDate and endDate are inclusive. statusFilter if non-empty will filter by status (case-insensitive).
+     */
+    public com.autoserve.dto.report.AppointmentAnalyticsDto buildAppointmentAnalytics(java.time.LocalDate startDate, java.time.LocalDate endDate, String statusFilter) {
+        List<Appointment> all = appointmentRepository.findAll();
+        List<Appointment> appointments = all == null ? Collections.emptyList() : all;
 
-    Map<String, Long> statusCounts = appointments.stream()
-        .collect(Collectors.groupingBy(a -> a.getStatus() == null ? "UNKNOWN" : a.getStatus(), Collectors.counting()));
-        out.put("statusCounts", statusCounts);
+        // apply filters in-memory (consider adding repository-level filters for large data sets)
+        if (startDate != null || endDate != null || (statusFilter != null && !statusFilter.isBlank())) {
+            appointments = appointments.stream().filter(a -> {
+                if (a.getDate() == null) return false;
+                if (startDate != null && a.getDate().isBefore(startDate)) return false;
+                if (endDate != null && a.getDate().isAfter(endDate)) return false;
+                if (statusFilter != null && !statusFilter.isBlank()) {
+                    String s = a.getStatus() == null ? "" : a.getStatus();
+                    if (!s.equalsIgnoreCase(statusFilter)) return false;
+                }
+                return true;
+            }).collect(Collectors.toList());
+        }
+
+        long total = appointments.size();
+        Map<String, Long> statusCounts = appointments.stream()
+                .collect(Collectors.groupingBy(a -> a.getStatus() == null ? "UNKNOWN" : a.getStatus(), Collectors.counting()));
 
         double totalRevenue = appointments.stream()
-                .mapToDouble(a -> {
-                    Double cost = a.getEstimatedCost();
-                    return cost == null ? 0.0 : cost;
-                })
+                .mapToDouble(a -> a.getEstimatedCost())
                 .sum();
-        out.put("totalRevenue", totalRevenue);
 
         Map<String, Long> daily = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();
@@ -77,28 +92,26 @@ public class ReportService {
             long cnt = appointments.stream().filter(a -> d.equals(a.getDate())).count();
             daily.put(key, cnt);
         }
-        out.put("dailyCounts", daily);
 
-    List<Map<String, Object>> rows = appointments.stream().map(a -> {
-            Map<String, Object> r = new LinkedHashMap<>();
-            r.put("id", a.getId());
-            r.put("date", a.getDate());
-            r.put("time", a.getTime());
-            r.put("status", a.getStatus());
-            r.put("estimatedCost", a.getEstimatedCost());
+        java.util.List<com.autoserve.dto.report.AppointmentRowDto> rows = appointments.stream().map(a -> {
+            com.autoserve.dto.report.AppointmentRowDto r = new com.autoserve.dto.report.AppointmentRowDto();
+            r.setId(a.getId());
+            r.setDate(a.getDate() != null ? a.getDate().toString() : null);
+            r.setTime(a.getTime() != null ? a.getTime().toString() : null);
+            r.setStatus(a.getStatus());
+            r.setEstimatedCost(a.getEstimatedCost());
             User cu = a.getCustomer();
-            r.put("customerEmail", cu != null ? cu.getEmail() : null);
+            r.setCustomerEmail(cu != null ? cu.getEmail() : null);
             User eu = a.getEmployee();
-            r.put("employeeEmail", eu != null ? eu.getEmail() : null);
-            r.put("serviceId", a.getService() != null ? a.getService().getId() : null);
+            r.setEmployeeEmail(eu != null ? eu.getEmail() : null);
+            r.setServiceId(a.getService() != null ? a.getService().getId() : null);
             Vehicle v = a.getVehicle();
-            r.put("vehicleNumber", v != null ? v.getVehicleNumber() : null);
-            r.put("additionalNote", a.getAdditionalNote());
+            r.setVehicleNumber(v != null ? v.getVehicleNumber() : null);
+            r.setAdditionalNote(a.getAdditionalNote());
             return r;
         }).collect(Collectors.toList());
-        out.put("rows", rows);
 
-        return out;
+        return new com.autoserve.dto.report.AppointmentAnalyticsDto(total, statusCounts, totalRevenue, daily, rows);
     }
 
     /**
@@ -146,7 +159,7 @@ public class ReportService {
     /**
      * Generate a simple PDF report from analytics map. Returns PDF bytes.
      */
-    public byte[] generateAppointmentsPdf(Map<String, Object> analytics) {
+    public byte[] generateAppointmentsPdf(com.autoserve.dto.report.AppointmentAnalyticsDto analytics) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Document doc = new Document(PageSize.A4.rotate(), 36, 36, 36, 36);
             PdfWriter.getInstance(doc, baos);
@@ -159,17 +172,15 @@ public class ReportService {
             doc.add(new Paragraph(" "));
 
             doc.add(new Paragraph("Summary", h2));
-            @SuppressWarnings("unchecked")
-            Map<String, Long> statusCounts = (Map<String, Long>) analytics.getOrDefault("statusCounts", Collections.emptyMap());
-            double totalRevenue = ((Number) analytics.getOrDefault("totalRevenue", 0.0)).doubleValue();
-            doc.add(new Paragraph("Total Appointments: " + analytics.getOrDefault("totalAppointments", 0)));
+            Map<String, Long> statusCounts = analytics.getStatusCounts() != null ? analytics.getStatusCounts() : Collections.emptyMap();
+            double totalRevenue = analytics.getTotalRevenue();
+            doc.add(new Paragraph("Total Appointments: " + analytics.getTotalAppointments()));
             doc.add(new Paragraph("Total Revenue (estimated): " + totalRevenue));
             doc.add(new Paragraph("Status counts: " + statusCounts.toString()));
             doc.add(new Paragraph(" "));
 
             doc.add(new Paragraph("Daily counts (last 30 days)", h2));
-            @SuppressWarnings("unchecked")
-            Map<String, Long> daily = (Map<String, Long>) analytics.getOrDefault("dailyCounts", Collections.emptyMap());
+            Map<String, Long> daily = analytics.getDailyCounts() != null ? analytics.getDailyCounts() : Collections.emptyMap();
             PdfPTable dailyTable = new PdfPTable(2);
             dailyTable.addCell("Date");
             dailyTable.addCell("Count");
@@ -181,18 +192,17 @@ public class ReportService {
             doc.add(new Paragraph(" "));
 
             doc.add(new Paragraph("Appointments (sample)", h2));
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> rows = (List<Map<String, Object>>) analytics.getOrDefault("rows", Collections.emptyList());
+            java.util.List<com.autoserve.dto.report.AppointmentRowDto> rows = analytics.getRows() != null ? analytics.getRows() : Collections.emptyList();
             PdfPTable tbl = new PdfPTable(6);
             tbl.setWidths(new int[]{2, 2, 2, 2, 3, 3});
             tbl.addCell("ID"); tbl.addCell("Date"); tbl.addCell("Time"); tbl.addCell("Status"); tbl.addCell("Customer"); tbl.addCell("Vehicle");
-            for (Map<String, Object> r : rows) {
-                tbl.addCell(String.valueOf(r.get("id")));
-                tbl.addCell(String.valueOf(r.get("date")));
-                tbl.addCell(String.valueOf(r.get("time")));
-                tbl.addCell(String.valueOf(r.get("status")));
-                tbl.addCell(String.valueOf(r.get("customerEmail")));
-                tbl.addCell(String.valueOf(r.get("vehicleNumber")));
+            for (com.autoserve.dto.report.AppointmentRowDto r : rows) {
+                tbl.addCell(String.valueOf(r.getId()));
+                tbl.addCell(String.valueOf(r.getDate()));
+                tbl.addCell(String.valueOf(r.getTime()));
+                tbl.addCell(String.valueOf(r.getStatus()));
+                tbl.addCell(String.valueOf(r.getCustomerEmail()));
+                tbl.addCell(String.valueOf(r.getVehicleNumber()));
             }
             doc.add(tbl);
 
@@ -206,22 +216,21 @@ public class ReportService {
     /**
      * Generate CSV string from analytics rows.
      */
-    public String generateAppointmentsCsv(Map<String, Object> analytics) {
+    public String generateAppointmentsCsv(com.autoserve.dto.report.AppointmentAnalyticsDto analytics) {
         StringBuilder sb = new StringBuilder();
         sb.append("id,date,time,status,customerEmail,employeeEmail,serviceId,vehicleNumber,estimatedCost,additionalNote\n");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> rows = (List<Map<String, Object>>) analytics.getOrDefault("rows", Collections.emptyList());
-        for (Map<String, Object> r : rows) {
-            sb.append(escapeCsv(String.valueOf(r.get("id")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("date")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("time")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("status")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("customerEmail")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("employeeEmail")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("serviceId")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("vehicleNumber")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("estimatedCost")))).append(',');
-            sb.append(escapeCsv(String.valueOf(r.get("additionalNote")))).append('\n');
+        java.util.List<com.autoserve.dto.report.AppointmentRowDto> rows = analytics.getRows() != null ? analytics.getRows() : Collections.emptyList();
+        for (com.autoserve.dto.report.AppointmentRowDto r : rows) {
+            sb.append(escapeCsv(String.valueOf(r.getId()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getDate()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getTime()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getStatus()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getCustomerEmail()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getEmployeeEmail()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getServiceId()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getVehicleNumber()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getEstimatedCost()))).append(',');
+            sb.append(escapeCsv(String.valueOf(r.getAdditionalNote()))).append('\n');
         }
         return sb.toString();
     }

@@ -90,11 +90,17 @@ public class AdminAppointmentController {
             @PathVariable Long id, 
             @RequestBody UpdateStatusRequest request) {
         try {
+            System.out.println("[AdminAppointmentController] updateAppointmentStatus called - id: " + id + ", status: " + request.getStatus());
             Appointment updatedAppointment = appointmentService.updateAppointmentStatus(id, request.getStatus());
+            System.out.println("[AdminAppointmentController] updateAppointmentStatus succeeded for id: " + id + " -> " + updatedAppointment.getStatus());
             return ResponseEntity.ok(updatedAppointment);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            System.err.println("[AdminAppointmentController] RuntimeException while updating status for id: " + id + " -> " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(404).body(null);
         } catch (Exception e) {
+            System.err.println("[AdminAppointmentController] Exception while updating status for id: " + id + " -> " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

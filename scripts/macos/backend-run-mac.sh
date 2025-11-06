@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "🔄 Forcing Backend Restart..."
+echo "WAIT!! Forcing Backend Restart..."
 echo ""
 
 # Kill any existing Spring Boot process on port 8080
-echo "1. Killing any process on port 8080..."
+echo "1. Killing (using Knife) any process on port 8080..."
 lsof -ti:8080 | xargs kill -9 2>/dev/null || echo "   No process found on port 8080"
 
 # Wait a moment
@@ -22,7 +22,7 @@ mvn clean -q
 
 echo ""
 echo "3. Starting backend..."
-echo "   Look for: ✅ Vector database initialized successfully"
+echo "   Look for:  Vector db initialized successfully."
 echo ""
 
 # Start

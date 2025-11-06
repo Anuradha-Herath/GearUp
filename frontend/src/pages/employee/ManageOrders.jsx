@@ -93,7 +93,38 @@ const ManageOrders = () => {
     return statusFlow[currentStatus] || [];
   };
 
-  const filteredOrders = orders.filter(order => order.status === activeTab);
+  // Get current month and year
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    return {
+      month: now.getMonth(),
+      year: now.getFullYear()
+    };
+  };
+
+  // Check if date is in current month
+  const isInCurrentMonth = (dateString) => {
+    const date = new Date(dateString);
+    const { month, year } = getCurrentMonthYear();
+    return date.getMonth() === month && date.getFullYear() === year;
+  };
+
+  // Filter and sort orders
+  const filteredOrders = orders
+    .filter(order => {
+      // For finished tab, only show orders from this month
+      if (activeTab === 'finished') {
+        return order.status === activeTab && isInCurrentMonth(order.date);
+      }
+      // For other tabs, show all orders with that status
+      return order.status === activeTab;
+    })
+    .sort((a, b) => {
+      // Sort by date descending (most recent first)
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA;
+    });
 
   if (loading) {
     return (
@@ -179,7 +210,7 @@ const ManageOrders = () => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Finished ({orders.filter(o => o.status === 'finished').length})
+            Finished - This Month ({orders.filter(o => o.status === 'finished' && isInCurrentMonth(o.date)).length})
           </button>
         </div>
       </div>

@@ -47,11 +47,20 @@ const History = () => {
         serviceDescription: appointment.service?.shortDescription || ''
       }));
 
-      // Sort by date (newest first)
+      // Sort by date descending (most recent first - last finished service shows first)
       const sortedServices = transformedServices.sort((a, b) => {
-        const dateTimeA = new Date(`${a.date} ${a.time}`);
-        const dateTimeB = new Date(`${b.date} ${b.time}`);
-        return dateTimeB - dateTimeA;
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        
+        // If dates are different, sort by date
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateB - dateA; // Descending order (newest first)
+        }
+        
+        // If dates are same, sort by time
+        const timeA = a.time || '00:00';
+        const timeB = b.time || '00:00';
+        return timeB.localeCompare(timeA); // Descending order (latest time first)
       });
 
       setFinishedServices(sortedServices);

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
 import LandingPage from './pages/LandingPage';
 import ServiceDetailsPage from './pages/ServiceDetailsPage';
 import Login from './pages/auth/Login';
@@ -38,6 +39,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <ChatbotWidget />
         <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />

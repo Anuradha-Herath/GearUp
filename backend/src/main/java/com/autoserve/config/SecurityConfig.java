@@ -41,6 +41,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/chatbot/**").permitAll() // Allow chatbot access for all users
                 .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
                 .anyRequest().authenticated()
             )

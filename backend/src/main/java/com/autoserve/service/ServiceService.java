@@ -2,6 +2,7 @@ package com.autoserve.service;
 
 import com.autoserve.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +12,9 @@ import java.util.Optional;
 public class ServiceService {
     
     private final ServiceRepository serviceRepository;
+    
+    @Autowired
+    private VectorDBService vectorDBService;
 
     public List<com.autoserve.entity.Service> getAllServices() {
         return serviceRepository.findAll();
@@ -21,7 +25,10 @@ public class ServiceService {
     }
 
     public com.autoserve.entity.Service createService(com.autoserve.entity.Service service) {
-        return serviceRepository.save(service);
+        com.autoserve.entity.Service savedService = serviceRepository.save(service);
+        // Sync to vector DB
+        vectorDBService.addService(savedService);
+        return savedService;
     }
 
     public com.autoserve.entity.Service updateService(Long id, com.autoserve.entity.Service serviceDetails) {
@@ -36,7 +43,10 @@ public class ServiceService {
         service.setEstimatedPrice(serviceDetails.getEstimatedPrice());
         service.setMaxPerDay(serviceDetails.getMaxPerDay());
         
-        return serviceRepository.save(service);
+        com.autoserve.entity.Service updatedService = serviceRepository.save(service);
+        // Sync to vector DB
+        vectorDBService.updateService(updatedService);
+        return updatedService;
     }
 
     public void deleteService(Long id) {
@@ -44,5 +54,7 @@ public class ServiceService {
             throw new RuntimeException("Service not found with id: " + id);
         }
         serviceRepository.deleteById(id);
+        // Remove from vector DB
+        vectorDBService.deleteService(id);
     }
 }

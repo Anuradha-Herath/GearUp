@@ -28,6 +28,7 @@ public class AppointmentService {
     private final VehicleRepository vehicleRepository;
     private final ServiceRepository serviceRepository;
     private final TimeLogRepository timeLogRepository;
+    private final VectorDBService vectorDBService;
 
     public List<Appointment> getMyAppointments() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -64,7 +65,10 @@ public class AppointmentService {
         appointment.setEstimatedCost(service.getEstimatedPrice());
         appointment.setStatus("REQUESTED");
         
-        return appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.addAppointment(savedAppointment);
+        return savedAppointment;
     }
 
     public Appointment updateAppointment(Long id, Appointment appointmentDetails) {
@@ -85,7 +89,10 @@ public class AppointmentService {
         appointment.setTime(appointmentDetails.getTime());
         appointment.setAdditionalNote(appointmentDetails.getAdditionalNote());
         
-        return appointmentRepository.save(appointment);
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.updateAppointment(updatedAppointment);
+        return updatedAppointment;
     }
 
     public void deleteAppointment(Long id) {
@@ -103,6 +110,8 @@ public class AppointmentService {
         }
         
         appointmentRepository.deleteById(id);
+        // Remove from vector DB
+        vectorDBService.deleteAppointment(id);
     }
 
     public List<Appointment> getAllAppointments() {
@@ -202,7 +211,10 @@ public class AppointmentService {
         }
         
         appointment.setStatus(upperStatus);
-        return appointmentRepository.save(appointment);
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.updateAppointment(updatedAppointment);
+        return updatedAppointment;
     }
 
     private boolean isValidStatus(String status) {

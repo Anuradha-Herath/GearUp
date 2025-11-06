@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -36,18 +38,64 @@ const Reports = () => {
   useEffect(() => {
     generateReport();
   }, [reportType, dateRange, statusFilter]);
-
-  const generateReport = () => {
+  const generateReport = async () => {
     setLoading(true);
 
-    // Simulate API call delay
+    // If appointments, fetch server analytics
+    if (reportType === 'appointments') {
+      try {
+        // build query params from dateRange and statusFilter
+        const params = new URLSearchParams();
+        const today = new Date();
+        let start = null;
+        if (dateRange === 'last7days') {
+          const d = new Date(); d.setDate(today.getDate() - 6); start = d;
+        } else if (dateRange === 'last30days') {
+          const d = new Date(); d.setDate(today.getDate() - 29); start = d;
+        } else if (dateRange === 'last3months') {
+          const d = new Date(); d.setMonth(today.getMonth() - 3); start = d;
+        } else if (dateRange === 'last6months') {
+          const d = new Date(); d.setMonth(today.getMonth() - 6); start = d;
+        } else if (dateRange === 'lastyear') {
+          const d = new Date(); d.setFullYear(today.getFullYear() - 1); start = d;
+        }
+        if (start) {
+          // format as yyyy-mm-dd
+          const fmt = (dt) => dt.toISOString().slice(0,10);
+          params.set('startDate', fmt(start));
+          params.set('endDate', fmt(today));
+        }
+        // map frontend status filter to backend status values
+        if (statusFilter && statusFilter !== 'all') {
+          if (statusFilter === 'completed') params.set('status', 'FINISHED');
+          else if (statusFilter === 'cancelled') params.set('status', 'CANCELLED');
+          // 'active' and others left unset to be handled server-side in future
+        }
+
+        const url = '/api/reports/appointments' + (params.toString() ? `?${params.toString()}` : '');
+        const res = await fetch(url);
+        const analytics = await res.json();
+        if (analytics == null || analytics.message) {
+          // fall back to local sample if server returns no data
+          setReportData(generateAppointmentReport());
+        } else {
+          const mapped = mapAppointmentAnalyticsToReportData(analytics);
+          setReportData(mapped);
+        }
+      } catch (err) {
+        // network error or CORS — fall back to sample
+        console.error('Failed to fetch appointment analytics', err);
+        setReportData(generateAppointmentReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Non-appointments: keep existing local sample generators
     setTimeout(() => {
       let data;
-
       switch (reportType) {
-        case 'appointments':
-          data = generateAppointmentReport();
-          break;
         case 'customers':
           data = generateCustomerReport();
           break;
@@ -63,10 +111,69 @@ const Reports = () => {
         default:
           data = generateAppointmentReport();
       }
-
       setReportData(data);
       setLoading(false);
-    }, 1000);
+    }, 300);
+  };
+
+  // Map backend analytics (server) to the shape used by this component
+  const mapAppointmentAnalyticsToReportData = (analytics) => {
+    const totalAppointments = analytics.totalAppointments || 0;
+    const statusCounts = analytics.statusCounts || {};
+    const totalCompleted = statusCounts['COMPLETED'] || statusCounts['Completed'] || 0;
+    const totalCancelled = statusCounts['CANCELLED'] || statusCounts['Cancelled'] || 0;
+    const completionRate = totalAppointments > 0 ? ((totalCompleted / totalAppointments) * 100).toFixed(1) : '0.0';
+
+    // dailyCounts may be an object: {date: count}
+    const dailyCountsObj = analytics.dailyCounts || {};
+    const labels = Object.keys(dailyCountsObj).sort();
+    const totalSeries = labels.map(d => dailyCountsObj[d]);
+
+    // compute completed per day from rows if available
+    const rows = analytics.rows || [];
+    const completedByDay = {};
+    rows.forEach(r => {
+      const date = r.date ? String(r.date) : null;
+      const status = r.status ? String(r.status) : '';
+      if (!date) return;
+      if (!completedByDay[date]) completedByDay[date] = 0;
+      if (status.toUpperCase() === 'COMPLETED') completedByDay[date]++;
+    });
+    const completedSeries = labels.map(d => completedByDay[d] || 0);
+
+    const chartData = {
+      labels,
+      datasets: [
+        {
+          label: 'Total Appointments',
+          data: totalSeries,
+          backgroundColor: 'rgba(122, 133, 193, 0.6)',
+          borderColor: 'rgba(122, 133, 193, 1)',
+          borderWidth: 1,
+        },
+        {
+          label: 'Completed',
+          data: completedSeries,
+          backgroundColor: 'rgba(34, 197, 94, 0.6)',
+          borderColor: 'rgba(34, 197, 94, 1)',
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    return {
+      summary: {
+        totalAppointments,
+        totalCompleted,
+        totalCancelled,
+        completionRate: `${completionRate}%`,
+        totalRevenue: analytics.totalRevenue || 0,
+      },
+      chartData,
+      chartType: 'bar',
+      // keep raw rows for detailed table if needed
+      rows: rows,
+    };
   };
 
   const generateAppointmentReport = () => {
@@ -293,9 +400,104 @@ const Reports = () => {
     };
   };
 
+  const exportReportPdf = () => {
+    if (!reportData) return;
+
+    // If appointments report, prefer server-generated PDF (attachment)
+    if (reportType === 'appointments') {
+      // open in new tab to trigger download
+      window.open('/api/reports/appointments/pdf', '_blank');
+      return;
+    }
+
+    // client-side PDF generation for other report types (existing behaviour)
+    const doc = new jsPDF();
+    const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+
+    // Add summary as key: value pairs
+    const summaryEntries = Object.entries(reportData.summary || {}).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1')}: ${v}`);
+    doc.setFontSize(10);
+    summaryEntries.forEach((line, i) => {
+      doc.text(line, 14, 28 + i * 6);
+    });
+
+    // Prepare table data: first column = series label, remaining columns = values for each label
+    const labels = (reportData.chartData && reportData.chartData.labels) || [];
+    const datasets = (reportData.chartData && reportData.chartData.datasets) || [];
+
+    const head = [['Series', ...labels]];
+    const body = datasets.map(ds => [ds.label || 'Series', ...((ds.data || []).map(v => String(v)))]);
+
+    // Start table below the summary
+    const startY = 28 + summaryEntries.length * 6 + 6;
+
+    // Use autoTable to render the table; fall back to manual rendering if unavailable
+    if (typeof autoTable === 'function') {
+      autoTable(doc, {
+        head,
+        body,
+        startY,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [122, 133, 193] },
+      });
+    } else if (typeof doc.autoTable === 'function') {
+      // older integration
+      // eslint-disable-next-line no-undef
+      doc.autoTable({ head, body, startY, styles: { fontSize: 9 }, headStyles: { fillColor: [122, 133, 193] } });
+    } else {
+      // simple fallback: render table as lines of text
+      let y = startY;
+      const lineHeight = 6;
+      // header
+      doc.setFontSize(9);
+      doc.text(head[0].join(' | '), 14, y);
+      y += lineHeight;
+      body.forEach(row => {
+        doc.text(row.join(' | '), 14, y);
+        y += lineHeight;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+    }
+
+    doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
+  };
+
   const exportReport = (format) => {
-    // Simulate export functionality
-    alert(`Exporting ${reportType} report as ${format.toUpperCase()}`);
+    if (format === 'pdf') return exportReportPdf();
+    if (format === 'csv') {
+      // If appointments, prefer server CSV endpoint
+      if (reportType === 'appointments') {
+        window.open('/api/reports/appointments/csv', '_blank');
+        return;
+      }
+
+      // simple client-side CSV export of the same table
+      if (!reportData) return;
+      const labels = (reportData.chartData && reportData.chartData.labels) || [];
+      const datasets = (reportData.chartData && reportData.chartData.datasets) || [];
+      const rows = [];
+      const header = ['Series', ...labels];
+      rows.push(header.join(','));
+      datasets.forEach(ds => {
+        const row = [ds.label || 'Series', ...(ds.data || [])];
+        rows.push(row.join(','));
+      });
+      const csv = rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType}_report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const renderChart = () => {

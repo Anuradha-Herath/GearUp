@@ -27,6 +27,7 @@ management:
       enabled: true
 
 ---
+
 spring:
   config:
     activate:
@@ -34,7 +35,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?createDatabaseIfNotExist=true}
     username: ${DATABASE_USERNAME:root}
-    password: ${DATABASE_PASSWORD}
+    password: ${DATABASE_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -62,7 +63,7 @@ spring:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:my-secret-key}
   expiration: ${JWT_EXPIRATION:86400000}
 
 sendgrid:
@@ -75,6 +76,7 @@ app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
 
 ---
+
 spring:
   config:
     activate:
@@ -98,6 +100,7 @@ app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost}
 
 ---
+
 spring:
   config:
     activate:

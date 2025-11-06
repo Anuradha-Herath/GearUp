@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -22,12 +21,17 @@ public class ReportController {
         this.reportService = reportService;
     }
 
+    // Return analytics as JSON
     @GetMapping("/appointments")
-    public ResponseEntity<Map<String, Object>> appointments() {
+    public ResponseEntity<?> appointments() {
         Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
+        if (analytics == null || analytics.isEmpty()) {
+            return ResponseEntity.ok(Map.of("message", "No report data found."));
+        }
         return ResponseEntity.ok(analytics);
     }
 
+    // PDF export
     @GetMapping("/appointments/pdf")
     public ResponseEntity<byte[]> appointmentsPdf() {
         Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
@@ -39,6 +43,7 @@ public class ReportController {
                 .body(pdf);
     }
 
+    // CSV export
     @GetMapping("/appointments/csv")
     public ResponseEntity<byte[]> appointmentsCsv() {
         Map<String, Object> analytics = reportService.buildAppointmentAnalytics();
@@ -48,6 +53,24 @@ public class ReportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(csv.getBytes());
+    }
+
+    @GetMapping("/employees")
+    public ResponseEntity<?> employees() {
+        Map<String, Object> analytics = reportService.buildEmployeeAnalytics();
+        if (analytics == null || analytics.isEmpty()) {
+            return ResponseEntity.ok(Map.of("message", "No report data found."));
+        }
+        return ResponseEntity.ok(analytics);
+    }
+
+    @GetMapping("/system")
+    public ResponseEntity<?> system() {
+        Map<String, Object> analytics = reportService.buildSystemAnalytics();
+        if (analytics == null || analytics.isEmpty()) {
+            return ResponseEntity.ok(Map.of("message", "No report data found."));
+        }
+        return ResponseEntity.ok(analytics);
     }
 
 }

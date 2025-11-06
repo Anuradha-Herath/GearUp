@@ -1,9 +1,14 @@
 package com.autoserve.service;
 
 import com.autoserve.entity.Appointment;
+import com.autoserve.entity.Employee;
 import com.autoserve.entity.User;
 import com.autoserve.entity.Vehicle;
 import com.autoserve.repository.AppointmentRepository;
+import com.autoserve.repository.EmployeeRepository;
+import com.autoserve.repository.TimeLogRepository;
+import com.autoserve.repository.UserRepository;
+import com.autoserve.repository.VehicleRepository;
 import com.lowagie.text.Document;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
@@ -23,9 +28,21 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private final AppointmentRepository appointmentRepository;
+    private final EmployeeRepository employeeRepository;
+    private final UserRepository userRepository;
+    private final VehicleRepository vehicleRepository;
+    private final TimeLogRepository timeLogRepository;
 
-    public ReportService(AppointmentRepository appointmentRepository) {
+    public ReportService(AppointmentRepository appointmentRepository,
+                         EmployeeRepository employeeRepository,
+                         UserRepository userRepository,
+                         VehicleRepository vehicleRepository,
+                         TimeLogRepository timeLogRepository) {
         this.appointmentRepository = appointmentRepository;
+        this.employeeRepository = employeeRepository;
+        this.userRepository = userRepository;
+        this.vehicleRepository = vehicleRepository;
+        this.timeLogRepository = timeLogRepository;
     }
 
     /**
@@ -33,17 +50,17 @@ public class ReportService {
      * Keys: totalAppointments, statusCounts, totalRevenue, dailyCounts, rows
      */
     public Map<String, Object> buildAppointmentAnalytics() {
-        List<Appointment> all = appointmentRepository.findAll();
-        if (all == null) all = Collections.emptyList();
+    List<Appointment> all = appointmentRepository.findAll();
+    List<Appointment> appointments = all == null ? Collections.emptyList() : all;
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("totalAppointments", all.size());
 
-        Map<String, Long> statusCounts = all.stream()
-                .collect(Collectors.groupingBy(a -> a.getStatus() == null ? "UNKNOWN" : a.getStatus(), Collectors.counting()));
+    Map<String, Long> statusCounts = appointments.stream()
+        .collect(Collectors.groupingBy(a -> a.getStatus() == null ? "UNKNOWN" : a.getStatus(), Collectors.counting()));
         out.put("statusCounts", statusCounts);
 
-        double totalRevenue = all.stream()
+        double totalRevenue = appointments.stream()
                 .mapToDouble(a -> {
                     Double cost = a.getEstimatedCost();
                     return cost == null ? 0.0 : cost;
@@ -57,12 +74,12 @@ public class ReportService {
         for (int i = 29; i >= 0; i--) {
             LocalDate d = today.minusDays(i);
             String key = d.format(fmt);
-            long cnt = all.stream().filter(a -> d.equals(a.getDate())).count();
+            long cnt = appointments.stream().filter(a -> d.equals(a.getDate())).count();
             daily.put(key, cnt);
         }
         out.put("dailyCounts", daily);
 
-        List<Map<String, Object>> rows = all.stream().map(a -> {
+    List<Map<String, Object>> rows = appointments.stream().map(a -> {
             Map<String, Object> r = new LinkedHashMap<>();
             r.put("id", a.getId());
             r.put("date", a.getDate());
@@ -81,6 +98,48 @@ public class ReportService {
         }).collect(Collectors.toList());
         out.put("rows", rows);
 
+        return out;
+    }
+
+    /**
+     * Build simple employee performance analytics.
+     */
+    public Map<String, Object> buildEmployeeAnalytics() {
+        List<Employee> employees = employeeRepository.findAll();
+        List<Appointment> all = appointmentRepository.findAll();
+        List<Employee> employeeList = employees == null ? Collections.emptyList() : employees;
+        List<Appointment> appointmentList = all == null ? Collections.emptyList() : all;
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        List<Map<String, Object>> list = employeeList.stream().map(e -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", e.getId());
+            m.put("name", e.getName());
+            long count = appointmentList.stream().filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getEmployee().getId().equals(e.getId())).count();
+            m.put("appointmentsCount", count);
+            return m;
+        }).collect(Collectors.toList());
+        out.put("employees", list);
+        out.put("totalEmployees", list.size());
+        return out;
+    }
+
+    /**
+     * Build system level usage analytics.
+     */
+    public Map<String, Object> buildSystemAnalytics() {
+        long totalUsers = userRepository.count();
+        long activeUsers = userRepository.findAll().stream().filter(User::isActive).count();
+        long totalVehicles = vehicleRepository.count();
+        long totalAppointments = appointmentRepository.count();
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("totalUsers", totalUsers);
+        out.put("activeUsers", activeUsers);
+        out.put("totalVehicles", totalVehicles);
+        out.put("totalAppointments", totalAppointments);
+        long openTimeLogs = timeLogRepository.findAll().stream().filter(t -> t.getEndTime() == null).count();
+        out.put("openTimeLogs", openTimeLogs);
         return out;
     }
 

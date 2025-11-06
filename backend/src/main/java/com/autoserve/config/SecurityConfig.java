@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
                 .requestMatchers("/api/customer/**").permitAll() // Temporarily allow customer endpoints for local dev/testing
+                .requestMatchers("/api/reports/**").permitAll() // allow public access to reporting endpoints
+                .requestMatchers("/api/appointments/public").permitAll() // public appointments endpoint for frontend
                 .requestMatchers("/actuator/**").permitAll() // Allow actuator endpoints for local health checks
                 .anyRequest().authenticated()
             )

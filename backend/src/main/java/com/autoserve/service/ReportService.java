@@ -58,22 +58,39 @@ public class ReportService {
      * startDate and endDate are inclusive. statusFilter if non-empty will filter by status (case-insensitive).
      */
     public com.autoserve.dto.report.AppointmentAnalyticsDto buildAppointmentAnalytics(java.time.LocalDate startDate, java.time.LocalDate endDate, String statusFilter) {
-        List<Appointment> all = appointmentRepository.findAll();
-        List<Appointment> appointments = all == null ? Collections.emptyList() : all;
-
-        // apply filters in-memory (consider adding repository-level filters for large data sets)
-        if (startDate != null || endDate != null || (statusFilter != null && !statusFilter.isBlank())) {
-            appointments = appointments.stream().filter(a -> {
-                if (a.getDate() == null) return false;
-                if (startDate != null && a.getDate().isBefore(startDate)) return false;
-                if (endDate != null && a.getDate().isAfter(endDate)) return false;
-                if (statusFilter != null && !statusFilter.isBlank()) {
-                    String s = a.getStatus() == null ? "" : a.getStatus();
-                    if (!s.equalsIgnoreCase(statusFilter)) return false;
-                }
-                return true;
-            }).collect(Collectors.toList());
+        // Prefer repository-level filtering for performance. Fall back to findAll() when no filters provided.
+        List<Appointment> appointments;
+        String sFilter = statusFilter != null && !statusFilter.isBlank() ? statusFilter.trim() : null;
+        if (sFilter != null) {
+            // normalize common stored statuses to upper case (most statuses are stored in upper-case)
+            sFilter = sFilter.toUpperCase();
         }
+
+        if (startDate != null && endDate != null) {
+            if (sFilter != null) {
+                appointments = appointmentRepository.findByDateBetweenAndStatusIgnoreCase(startDate, endDate, sFilter);
+            } else {
+                appointments = appointmentRepository.findByDateBetween(startDate, endDate);
+            }
+        } else if (startDate != null) {
+            if (sFilter != null) {
+                appointments = appointmentRepository.findByDateGreaterThanEqualAndStatusIgnoreCase(startDate, sFilter);
+            } else {
+                appointments = appointmentRepository.findByDateGreaterThanEqual(startDate);
+            }
+        } else if (endDate != null) {
+            if (sFilter != null) {
+                appointments = appointmentRepository.findByDateLessThanEqualAndStatusIgnoreCase(endDate, sFilter);
+            } else {
+                appointments = appointmentRepository.findByDateLessThanEqual(endDate);
+            }
+        } else if (sFilter != null) {
+            appointments = appointmentRepository.findByStatusIgnoreCase(sFilter);
+        } else {
+            appointments = appointmentRepository.findAll();
+        }
+
+        appointments = appointments == null ? Collections.emptyList() : appointments;
 
         long total = appointments.size();
         Map<String, Long> statusCounts = appointments.stream()

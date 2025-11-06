@@ -24,7 +24,7 @@ import EmployeeLayout from './layouts/EmployeeLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
-import AdminDashboard from './pages/admin/adminDashboard';
+import AdminDashboard from './pages/admin/Dashboard';
 import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import MyVehicles from './pages/customer/MyVehicles';

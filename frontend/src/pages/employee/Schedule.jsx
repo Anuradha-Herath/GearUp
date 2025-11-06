@@ -1,132 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
 
 const Schedule = () => {
-  // Mock data for scheduled appointments
-  const [appointments] = useState([
-    {
-      id: 1,
-      date: '2025-11-05',
-      time: '09:00 AM',
-      endTime: '09:30 AM',
-      customerName: 'John Doe',
-      vehicleNumber: 'ABC-1234',
-      service: 'Oil Change',
-      status: 'confirmed'
-    },
-    {
-      id: 2,
-      date: '2025-11-05',
-      time: '10:00 AM',
-      endTime: '10:45 AM',
-      customerName: 'Jane Smith',
-      vehicleNumber: 'XYZ-5678',
-      service: 'Brake Inspection',
-      status: 'confirmed'
-    },
-    {
-      id: 3,
-      date: '2025-11-05',
-      time: '11:30 AM',
-      endTime: '12:15 PM',
-      customerName: 'Mike Johnson',
-      vehicleNumber: 'DEF-9012',
-      service: 'Tire Rotation',
-      status: 'pending'
-    },
-    {
-      id: 4,
-      date: '2025-11-05',
-      time: '02:00 PM',
-      endTime: '03:00 PM',
-      customerName: 'Sarah Williams',
-      vehicleNumber: 'GHI-3456',
-      service: 'Battery Check',
-      status: 'confirmed'
-    },
-    {
-      id: 5,
-      date: '2025-11-06',
-      time: '09:00 AM',
-      endTime: '10:00 AM',
-      customerName: 'Robert Brown',
-      vehicleNumber: 'BMW-7890',
-      service: 'Engine Diagnostics',
-      status: 'confirmed'
-    },
-    {
-      id: 6,
-      date: '2025-11-06',
-      time: '10:30 AM',
-      endTime: '12:00 PM',
-      customerName: 'Emily Davis',
-      vehicleNumber: 'MER-4567',
-      service: 'Transmission Service',
-      status: 'confirmed'
-    },
-    {
-      id: 7,
-      date: '2025-11-06',
-      time: '01:00 PM',
-      endTime: '02:00 PM',
-      customerName: 'David Wilson',
-      vehicleNumber: 'AUD-1234',
-      service: 'AC Service',
-      status: 'pending'
-    },
-    {
-      id: 8,
-      date: '2025-11-06',
-      time: '03:00 PM',
-      endTime: '04:00 PM',
-      customerName: 'Lisa Anderson',
-      vehicleNumber: 'LEX-8901',
-      service: 'Wheel Alignment',
-      status: 'confirmed'
-    },
-    {
-      id: 9,
-      date: '2025-11-07',
-      time: '09:30 AM',
-      endTime: '10:00 AM',
-      customerName: 'Michael Chen',
-      vehicleNumber: 'TOY-1111',
-      service: 'Oil Change',
-      status: 'confirmed'
-    },
-    {
-      id: 10,
-      date: '2025-11-07',
-      time: '11:00 AM',
-      endTime: '01:00 PM',
-      customerName: 'Jessica Taylor',
-      vehicleNumber: 'HON-2222',
-      service: 'Brake Replacement',
-      status: 'pending'
-    },
-    {
-      id: 11,
-      date: '2025-11-07',
-      time: '02:00 PM',
-      endTime: '04:00 PM',
-      customerName: 'Chris Martinez',
-      vehicleNumber: 'NIS-3333',
-      service: 'Engine Tune-up',
-      status: 'confirmed'
-    },
-    {
-      id: 12,
-      date: '2025-11-08',
-      time: '10:00 AM',
-      endTime: '11:30 AM',
-      customerName: 'Amanda White',
-      vehicleNumber: 'CHV-4444',
-      service: 'Tire Replacement',
-      status: 'confirmed'
-    }
-  ]);
+  // State for appointments
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [selectedDate, setSelectedDate] = useState('2025-11-05');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewMode, setViewMode] = useState('day'); // 'day' or 'week'
+
+  // Fetch appointments from API
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await employeeService.getAllAppointments();
+        
+        // Transform backend data to match expected format
+        const transformedAppointments = data.map(appointment => ({
+          id: appointment.id,
+          date: appointment.date, // Assuming date is in YYYY-MM-DD format
+          time: appointment.time, // Assuming time is in HH:MM AM/PM format
+          endTime: appointment.endTime || calculateEndTime(appointment.time, 60), // fallback to 1 hour if not provided
+          customerName: appointment.customer?.username || appointment.customer?.name || 'Unknown',
+          vehicleNumber: appointment.vehicle?.vehicleNumber || 'N/A',
+          service: appointment.service?.title || appointment.service?.name || 'Service',
+          status: appointment.status?.toLowerCase() || 'pending'
+        }));
+        
+        setAppointments(transformedAppointments);
+        
+        // Set selected date to the first available appointment date or today
+        if (transformedAppointments.length > 0) {
+          const dates = [...new Set(transformedAppointments.map(apt => apt.date))].sort();
+          setSelectedDate(dates[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+        setError(err.message || 'Failed to load appointments');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
+
+  // Helper function to calculate end time
+  const calculateEndTime = (startTime, durationMinutes) => {
+    // Simple calculation - in production, use a proper time library
+    try {
+      const [time, period] = startTime.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      let totalMinutes = (hours % 12) * 60 + minutes + durationMinutes;
+      if (period === 'PM' && hours !== 12) totalMinutes += 12 * 60;
+      
+      const endHours = Math.floor(totalMinutes / 60) % 24;
+      const endMinutes = totalMinutes % 60;
+      const endPeriod = endHours >= 12 ? 'PM' : 'AM';
+      const displayHours = endHours % 12 || 12;
+      
+      return `${displayHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')} ${endPeriod}`;
+    } catch (e) {
+      return 'N/A';
+    }
+  };
 
   // Get unique dates from appointments
   const uniqueDates = [...new Set(appointments.map(apt => apt.date))].sort();
@@ -161,6 +101,33 @@ const Schedule = () => {
   };
 
   const stats = getTodayStats();
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center gap-3 text-red-800">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h3 className="font-semibold">Error Loading Appointments</h3>
+            <p className="text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

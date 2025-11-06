@@ -20,19 +20,19 @@ public class AdminCustomerService {
 
     public List<User> getAllCustomers() {
         return userRepository.findAll().stream()
-                .filter(user -> "CUSTOMER".equals(user.getRole()))
+                .filter(user -> "USER".equals(user.getRole()))
                 .toList();
     }
 
     public Optional<User> getCustomerById(Long id) {
         return userRepository.findById(id)
-                .filter(user -> "CUSTOMER".equals(user.getRole()));
+                .filter(user -> "USER".equals(user.getRole()));
     }
 
     @Transactional
     public User updateCustomerStatus(Long id, boolean isActive) {
         User customer = userRepository.findById(id)
-                .filter(user -> "CUSTOMER".equals(user.getRole()))
+                .filter(user -> "USER".equals(user.getRole()))
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         
         customer.setActive(isActive);
@@ -42,7 +42,7 @@ public class AdminCustomerService {
     @Transactional
     public User updateCustomer(Long id, UpdateCustomerRequest request) {
         User customer = userRepository.findById(id)
-                .filter(user -> "CUSTOMER".equals(user.getRole()))
+                .filter(user -> "USER".equals(user.getRole()))
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
 
         // Check if username is being changed and if it already exists
@@ -60,7 +60,7 @@ public class AdminCustomerService {
     @Transactional
     public void deleteCustomer(Long id) {
         User customer = userRepository.findById(id)
-                .filter(user -> "CUSTOMER".equals(user.getRole()))
+                .filter(user -> "USER".equals(user.getRole()))
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
         
         userRepository.delete(customer);

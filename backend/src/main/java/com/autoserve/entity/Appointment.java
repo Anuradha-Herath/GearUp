@@ -53,4 +53,8 @@ public class Appointment {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<TimeLog> timeLogs;
 }

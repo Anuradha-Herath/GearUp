@@ -76,7 +76,7 @@ app:
 
 gemini:
   api:
-    key: ${GEMINI_API_KEY:AIzaSyC_L2Rhw9kJyWrX767KfDT9GlDMYL9X-eQ}
+    key: ${GEMINI_API_KEY}
 
 ---
 spring:

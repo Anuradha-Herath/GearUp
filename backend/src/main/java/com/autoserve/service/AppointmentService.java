@@ -29,12 +29,20 @@ public class AppointmentService {
     private final ServiceRepository serviceRepository;
     private final TimeLogRepository timeLogRepository;
 
+    @Transactional
     public List<Appointment> getMyAppointments() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return appointmentRepository.findByCustomer(user);
+        List<Appointment> appointments = appointmentRepository.findByCustomer(user);
+        
+        // Explicitly load time logs for each appointment
+        appointments.forEach(appointment -> {
+            appointment.getTimeLogs().size(); // This triggers lazy loading
+        });
+        
+        return appointments;
     }
 
     public Optional<Appointment> getAppointmentById(Long id) {

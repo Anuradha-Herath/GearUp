@@ -94,6 +94,55 @@ const Reports = () => {
       return;
     }
 
+    // If customers, fetch from backend employee customers endpoint
+    if (reportType === 'customers') {
+      try {
+        const url = `${API_BASE_URL}/employee/customers`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch customers');
+        const customers = await res.json();
+        // Map to reportData shape
+        const totalCustomers = Array.isArray(customers) ? customers.length : 0;
+        const totalVehicles = Array.isArray(customers) ? customers.reduce((sum, c) => sum + (c.vehicleCount || 0), 0) : 0;
+        const rows = Array.isArray(customers) ? customers.map(c => ({
+          id: c.id,
+          name: c.name || c.username,
+          email: c.email,
+          phone: c.phone,
+          totalBookings: c.totalBookings || 0,
+          vehicleCount: c.vehicleCount || 0
+        })) : [];
+
+        const chartData = {
+          labels: rows.map(r => r.name),
+          datasets: [
+            {
+              label: 'Total Bookings',
+              data: rows.map(r => r.totalBookings),
+              backgroundColor: 'rgba(122, 133, 193, 0.6)'
+            },
+            {
+              label: 'Vehicles',
+              data: rows.map(r => r.vehicleCount),
+              backgroundColor: 'rgba(34, 197, 94, 0.6)'
+            }
+          ]
+        };
+
+        setReportData({
+          summary: { totalCustomers, totalVehicles },
+          chartData,
+          chartType: 'bar',
+          rows
+        });
+      } catch (err) {
+        console.error('Failed to fetch customers report', err);
+        setReportData(generateCustomerReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     // Non-appointments: keep existing local sample generators
     setTimeout(() => {
       let data;

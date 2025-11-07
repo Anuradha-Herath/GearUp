@@ -49,4 +49,13 @@ public class AppointmentController {
 
         return ResponseEntity.ok(summaries);
     }
+
+    // Get appointment by ID
+    @GetMapping("/{id}")
+    @CrossOrigin(origins = "http://localhost:5173")
+    public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
+        return appointmentService.getAppointmentById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import employeeFeedbackService from '../../services/employeeFeedbackService';
 
 const Feedbacks = () => {
-  // Mock data - replace with API call to fetch employee's feedbacks
-  const [feedbacks] = useState([
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Mock data for fallback
+  const MOCK_FEEDBACKS = [
     {
       id: 1,
       customerName: 'John Smith',
@@ -84,12 +89,55 @@ const Feedbacks = () => {
       serviceDate: '2025-10-21',
       serviceType: 'AC Repair'
     }
-  ]);
+  ];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRating, setFilterRating] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
+
+  // Fetch all feedback data
+  useEffect(() => {
+    const fetchAllFeedback = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Use the enriched feedback method that fetches customer and appointment details
+        const enrichedFeedbacks = await employeeFeedbackService.getEnrichedFeedback();
+        
+        // Format the enriched data for display
+        const formattedFeedbacks = enrichedFeedbacks.map(feedback => ({
+          id: feedback.id,
+          customerName: feedback.customerName,
+          customerEmail: feedback.customerEmail,
+          vehicle: feedback.vehicle,
+          rating: feedback.rating,
+          feedbackText: feedback.feedbackText || 'No feedback text provided',
+          serviceDate: feedback.serviceDate,
+          serviceType: feedback.serviceType,
+          createdAt: feedback.createdAt,
+          customerId: feedback.customerId,
+          appointmentId: feedback.appointmentId
+        }));
+
+        // Sort by creation date (newest first)
+        formattedFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        setFeedbacks(formattedFeedbacks);
+        
+      } catch (error) {
+        console.error('Error fetching all feedback:', error);
+        setError('Failed to load feedback. Using sample data.');
+        
+        // Fallback to mock data if API fails
+        setFeedbacks(MOCK_FEEDBACKS);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllFeedback();
+  }, []);
 
   // Calculate average rating
   const averageRating = feedbacks.length > 0 
@@ -140,16 +188,91 @@ const Feedbacks = () => {
     return 'text-red-600';
   };
 
+  // Refresh functionality
+  const handleRefresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Use the enriched feedback method for refresh as well
+      const enrichedFeedbacks = await employeeFeedbackService.getEnrichedFeedback();
+      
+      // Format the enriched data for display
+      const formattedFeedbacks = enrichedFeedbacks.map(feedback => ({
+        id: feedback.id,
+        customerName: feedback.customerName,
+        customerEmail: feedback.customerEmail,
+        vehicle: feedback.vehicle,
+        rating: feedback.rating,
+        feedbackText: feedback.feedbackText || 'No feedback text provided',
+        serviceDate: feedback.serviceDate,
+        serviceType: feedback.serviceType,
+        createdAt: feedback.createdAt,
+        customerId: feedback.customerId,
+        appointmentId: feedback.appointmentId
+      }));
+
+      formattedFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setFeedbacks(formattedFeedbacks);
+      
+    } catch (error) {
+      console.error('Error refreshing feedback:', error);
+      setError('Failed to refresh feedback data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <span className="text-3xl">📝</span>
-          My Feedbacks
-        </h1>
-        <p className="text-gray-600 mt-2">Customer feedback for your completed services</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <span className="text-3xl">📝</span>
+            All Customer Feedbacks
+          </h1>
+          <p className="text-gray-600 mt-2">View all customer feedback across all services</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 disabled:opacity-50"
+        >
+          <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Refresh</span>
+        </button>
       </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-lg shadow-md border p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading customer feedback...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content - only show when not loading */}
+      {!loading && (
+        <>
 
       {/* Average Rating Card */}
       <div className="bg-gradient-to-r bg-primary rounded-lg shadow-lg p-6 text-white">
@@ -428,6 +551,8 @@ const Feedbacks = () => {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };

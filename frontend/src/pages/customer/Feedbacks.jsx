@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../components/common/Loader";
 import { formatDate } from "../../utils/formatDate";
+import feedbackService from "../../services/feedbackService";
+import { useToast } from "../../context/ToastContext";
 
 const MOCK_FEEDBACKS = [
   {
@@ -39,27 +41,119 @@ const MOCK_FEEDBACKS = [
 export default function MyFeedbacks() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error] = useState(null);
+  const [error, setError] = useState(null);
   const [filterRating, setFilterRating] = useState("all");
   const navigate = useNavigate();
-
-  const currentCustomerId = window.__DEMO_CUSTOMER_ID__ || "c1";
+  const toast = useToast();
 
   useEffect(() => {
+    const fetchMyFeedback = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const myFeedbackData = await feedbackService.getMyFeedback();
+        
+        // Transform the data to match the expected format
+        const transformedFeedbacks = myFeedbackData.map(feedback => ({
+          id: feedback.id,
+          _id: feedback.id,
+          customerId: feedback.customer?.id,
+          rating: feedback.rating,
+          text: feedback.feedbackText,
+          createdAt: feedback.createdAt,
+          appointment: {
+            id: feedback.appointment?.id,
+            serviceDate: feedback.appointment?.date,
+            service: feedback.appointment?.service?.title || 'Service',
+            vehicle: {
+              display: `${feedback.appointment?.vehicle?.company || ''} ${feedback.appointment?.vehicle?.model || ''}`.trim() || 'Vehicle',
+              make: `${feedback.appointment?.vehicle?.company || ''} ${feedback.appointment?.vehicle?.model || ''}`.trim() || 'Vehicle'
+            }
+          }
+        }));
+
+        // Sort by creation date (newest first)
+        transformedFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        setFeedbacks(transformedFeedbacks);
+        
+      } catch (error) {
+        console.error('Error fetching feedback:', error);
+        setError('Failed to load feedback. Please try again later.');
+        
+        // Fallback to mock data if API fails
+        setFeedbacks(MOCK_FEEDBACKS);
+        toast.error('Failed to load feedback data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyFeedback();
+  }, [toast]);
+
+  // Delete feedback handler
+  const handleDeleteFeedback = async (feedbackId) => {
+    if (!window.confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await feedbackService.deleteFeedback(feedbackId);
+      
+      // Remove from local state
+      setFeedbacks(prev => prev.filter(f => f.id !== feedbackId));
+      toast.success('Feedback deleted successfully');
+      
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
+      toast.error('Failed to delete feedback. Please try again.');
+    }
+  };
+
+  // Refresh feedback data
+  const handleRefresh = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setFeedbacks(MOCK_FEEDBACKS);
+    try {
+      const myFeedbackData = await feedbackService.getMyFeedback();
+      
+      const transformedFeedbacks = myFeedbackData.map(feedback => ({
+        id: feedback.id,
+        _id: feedback.id,
+        customerId: feedback.customer?.id,
+        rating: feedback.rating,
+        text: feedback.feedbackText,
+        createdAt: feedback.createdAt,
+        appointment: {
+          id: feedback.appointment?.id,
+          serviceDate: feedback.appointment?.date,
+          service: feedback.appointment?.service?.title || 'Service',
+          vehicle: {
+            display: `${feedback.appointment?.vehicle?.company || ''} ${feedback.appointment?.vehicle?.model || ''}`.trim() || 'Vehicle',
+            make: `${feedback.appointment?.vehicle?.company || ''} ${feedback.appointment?.vehicle?.model || ''}`.trim() || 'Vehicle'
+          }
+        }
+      }));
+
+      transformedFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setFeedbacks(transformedFeedbacks);
+      toast.success('Feedback data refreshed');
+      
+    } catch (error) {
+      console.error('Error refreshing feedback:', error);
+      toast.error('Failed to refresh feedback data');
+    } finally {
       setLoading(false);
-    }, 300);
-  }, []);
+    }
+  };
 
   const myFeedbacks = useMemo(() => {
-    let filtered = feedbacks.filter((f) => f.customerId === currentCustomerId);
+    let filtered = feedbacks; // All feedbacks are already for current customer from API
     if (filterRating !== "all") {
       filtered = filtered.filter((f) => f.rating === parseInt(filterRating));
     }
     return filtered;
-  }, [feedbacks, currentCustomerId, filterRating]);
+  }, [feedbacks, filterRating]);
 
   const averageRating = useMemo(() => {
     if (myFeedbacks.length === 0) return 0;
@@ -79,15 +173,27 @@ export default function MyFeedbacks() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">My Feedbacks</h1>
               <p className="text-gray-600">Track and manage your service reviews</p>
             </div>
-            <button
-              onClick={() => navigate("/customer/feedback-form")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-0.5"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>New Feedback</span>
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 disabled:opacity-50"
+              >
+                <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={() => navigate("/customer/feedback-form")}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-0.5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>New Feedback</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -126,7 +232,7 @@ export default function MyFeedbacks() {
                   <p className="text-sm text-gray-600 mb-1">Latest Review</p>
                   <p className="text-lg font-bold text-gray-900">
                     {myFeedbacks.length > 0
-                      ? new Date(myFeedbacks[0].appointment?.serviceDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      ? new Date(myFeedbacks[0].createdAt || myFeedbacks[0].appointment?.serviceDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                       : "N/A"}
                   </p>
                 </div>
@@ -180,7 +286,7 @@ export default function MyFeedbacks() {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No feedbacks yet</h3>
               <p className="text-gray-600 mb-6">Start sharing your experiences with our services</p>
               <button
-                onClick={() => navigate("/customer/feedback")}
+                onClick={() => navigate("/customer/feedback-form")}
                 className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,14 +309,17 @@ export default function MyFeedbacks() {
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-900">
-                            {f.appointment?.vehicle?.display || f.appointment?.vehicle?.make || f.vehicle || "Vehicle"}
+                            {f.appointment?.service || 'Service'} - {f.appointment?.vehicle?.display || f.appointment?.vehicle?.make || f.vehicle || "Vehicle"}
                           </h3>
-                          <p className="text-sm text-gray-500">
-                            {f.appointment?.serviceDate
+                          {/* <p className="text-sm text-gray-500">
+                            Service Date: {f.appointment?.serviceDate
                               ? formatDate(f.appointment.serviceDate)
                               : f.serviceDate
                               ? formatDate(f.serviceDate)
                               : "Date unknown"}
+                          </p> */}
+                          <p className="text-xs text-gray-400">
+                            Feedback submitted: {f.createdAt ? formatDate(f.createdAt) : "Unknown"}
                           </p>
                         </div>
                       </div>
@@ -226,7 +335,30 @@ export default function MyFeedbacks() {
                       ))}
                     </div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">{f.text || "No written feedback"}</p>
+                  <p className="text-gray-700 leading-relaxed mb-3">{f.text || "No written feedback"}</p>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => handleDeleteFeedback(f.id)}
+                      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => navigate('/customer/feedback-form', { 
+                        state: { 
+                          editFeedbackId: f.id, 
+                          appointmentId: String(f.appointment?.id),
+                          existingRating: f.rating,
+                          existingText: f.text
+                        }
+                      })}
+                      className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -11,6 +11,8 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Verify from './pages/auth/Verify';
+import AboutUs from './pages/public/AboutUs';
+import Contact from './pages/public/Contact';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import ManageOrders from './pages/employee/ManageOrders';
 import History from './pages/employee/History';
@@ -25,6 +27,7 @@ import Reports from './pages/admin/Reports';
 import AdminLayout from './layouts/AdminLayout';
 import EmployeeLayout from './layouts/EmployeeLayout';
 import CustomerLayout from './layouts/CustomerLayout';
+import PublicLayout from './layouts/PublicLayout';
 import BookAppointment from './pages/customer/BookAppointment';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import AdminDashboard from './pages/admin/adminDashboard';
@@ -32,6 +35,7 @@ import ServiceProgress from './pages/customer/ServiceProgress';
 import MyBookings from './pages/customer/MyBookings';
 import MyVehicles from './pages/customer/MyVehicles';
 import Services from './pages/customer/Services';
+import ServicesWrapper from './pages/ServicesWrapper';
 import ServiceDetailsWrapper from './pages/ServiceDetailsWrapper';
 import FeedbackForm from './pages/customer/FeedbackForm';
 import MyFeedbacks from './pages/customer/Feedbacks';
@@ -44,6 +48,9 @@ function App() {
         <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<PublicLayout><AboutUs /></PublicLayout>} />
+        <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+        <Route path="/services" element={<ServicesWrapper />} />
         <Route path="/service/:serviceId" element={<ServiceDetailsWrapper />} />
         <Route path="/login" element={<AuthRedirect><Login /></AuthRedirect>} />
         <Route path="/signup" element={<AuthRedirect><Signup /></AuthRedirect>} />
@@ -124,11 +131,6 @@ function App() {
         <Route path="/customer/dashboard" element={
           <ProtectedRoute requiredRole="CUSTOMER">
             <CustomerLayout><CustomerDashboard /></CustomerLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/customer/services" element={
-          <ProtectedRoute requiredRole="CUSTOMER">
-            <CustomerLayout><Services /></CustomerLayout>
           </ProtectedRoute>
         } />
         <Route path="/customer/my-vehicles" element={

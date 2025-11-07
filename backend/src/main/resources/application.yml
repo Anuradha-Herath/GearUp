@@ -79,6 +79,10 @@ sendgrid:
 app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
 
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+
 ---
 
 spring:

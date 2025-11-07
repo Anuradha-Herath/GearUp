@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthRedirect from './components/AuthRedirect';
 import DashboardRedirect from './components/DashboardRedirect';
@@ -45,6 +46,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <ChatbotWidget />
         <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />

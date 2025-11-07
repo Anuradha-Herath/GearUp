@@ -311,13 +311,13 @@ export default function MyFeedbacks() {
                           <h3 className="font-semibold text-gray-900">
                             {f.appointment?.service || 'Service'} - {f.appointment?.vehicle?.display || f.appointment?.vehicle?.make || f.vehicle || "Vehicle"}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                          {/* <p className="text-sm text-gray-500">
                             Service Date: {f.appointment?.serviceDate
                               ? formatDate(f.appointment.serviceDate)
                               : f.serviceDate
                               ? formatDate(f.serviceDate)
                               : "Date unknown"}
-                          </p>
+                          </p> */}
                           <p className="text-xs text-gray-400">
                             Feedback submitted: {f.createdAt ? formatDate(f.createdAt) : "Unknown"}
                           </p>

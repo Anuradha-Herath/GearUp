@@ -28,11 +28,23 @@ public class AdminAnalyticsController {
      * Get dashboard overview statistics
      */
     @GetMapping("/overview")
-    public ResponseEntity<Map<String, Object>> getDashboardOverview() {
-        Map<String, Object> overview = new HashMap<>();
+        public ResponseEntity<Map<String, Object>> getDashboardOverview(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                                                                                                        @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+                java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+                java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+
+                Map<String, Object> overview = new HashMap<>();
         
-        // Total counts
-        List<Appointment> allAppointments = appointmentRepository.findAll();
+                // Total counts
+                List<Appointment> allAppointments = appointmentRepository.findAll();
+                if (sd != null || ed != null) {
+                        allAppointments = allAppointments.stream().filter(a -> {
+                                if (a.getDate() == null) return false;
+                                if (sd != null && a.getDate().isBefore(sd)) return false;
+                                if (ed != null && a.getDate().isAfter(ed)) return false;
+                                return true;
+                        }).toList();
+                }
         List<User> allCustomers = userRepository.findAll().stream()
                 .filter(user -> "USER".equals(user.getRole()))
                 .toList();
@@ -275,10 +287,19 @@ public class AdminAnalyticsController {
      * Get revenue by service type
      */
     @GetMapping("/revenue/by-service")
-    public ResponseEntity<List<Map<String, Object>>> getRevenueByService() {
-        List<Appointment> finishedAppointments = appointmentRepository.findAll().stream()
-                .filter(apt -> "FINISHED".equals(apt.getStatus()) && apt.getService() != null)
-                .toList();
+        public ResponseEntity<List<Map<String, Object>>> getRevenueByService(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                                                                                                                  @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+                java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+                java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+
+                List<Appointment> finishedAppointments = appointmentRepository.findAll().stream()
+                                .filter(apt -> "FINISHED".equals(apt.getStatus()) && apt.getService() != null)
+                                .filter(apt -> {
+                                        if (sd != null && (apt.getDate() == null || apt.getDate().isBefore(sd))) return false;
+                                        if (ed != null && (apt.getDate() == null || apt.getDate().isAfter(ed))) return false;
+                                        return true;
+                                })
+                                .toList();
         
         Map<String, Double> serviceRevenue = finishedAppointments.stream()
                 .collect(Collectors.groupingBy(

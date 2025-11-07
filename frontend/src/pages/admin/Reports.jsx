@@ -51,30 +51,32 @@ const Reports = () => {
   }, [reportType, dateRange, statusFilter]);
   const generateReport = async () => {
     setLoading(true);
+    // compute startDate/endDate strings from dateRange for use across reports
+    const today = new Date();
+    let start = null;
+    if (dateRange === 'last7days') {
+      const d = new Date(); d.setDate(today.getDate() - 6); start = d;
+    } else if (dateRange === 'last30days') {
+      const d = new Date(); d.setDate(today.getDate() - 29); start = d;
+    } else if (dateRange === 'last3months') {
+      const d = new Date(); d.setMonth(today.getMonth() - 3); start = d;
+    } else if (dateRange === 'last6months') {
+      const d = new Date(); d.setMonth(today.getMonth() - 6); start = d;
+    } else if (dateRange === 'lastyear') {
+      const d = new Date(); d.setFullYear(today.getFullYear() - 1); start = d;
+    }
+    const fmt = (dt) => dt.toISOString().slice(0,10);
+    const startDate = start ? fmt(start) : null;
+    const endDate = fmt(today);
 
     // If appointments, fetch server analytics
     if (reportType === 'appointments') {
       try {
         // build query params from dateRange and statusFilter
         const params = new URLSearchParams();
-        const today = new Date();
-        let start = null;
-        if (dateRange === 'last7days') {
-          const d = new Date(); d.setDate(today.getDate() - 6); start = d;
-        } else if (dateRange === 'last30days') {
-          const d = new Date(); d.setDate(today.getDate() - 29); start = d;
-        } else if (dateRange === 'last3months') {
-          const d = new Date(); d.setMonth(today.getMonth() - 3); start = d;
-        } else if (dateRange === 'last6months') {
-          const d = new Date(); d.setMonth(today.getMonth() - 6); start = d;
-        } else if (dateRange === 'lastyear') {
-          const d = new Date(); d.setFullYear(today.getFullYear() - 1); start = d;
-        }
-        if (start) {
-          // format as yyyy-mm-dd
-          const fmt = (dt) => dt.toISOString().slice(0,10);
-          params.set('startDate', fmt(start));
-          params.set('endDate', fmt(today));
+        if (startDate) {
+          params.set('startDate', startDate);
+          params.set('endDate', endDate);
         }
         // map frontend status filter to backend status values
         if (statusFilter && statusFilter !== 'all') {
@@ -83,9 +85,9 @@ const Reports = () => {
           // 'active' and others left unset to be handled server-side in future
         }
 
-  // Use configured API base URL so dev server and production call the correct backend
-  const url = `${API_BASE_URL}/reports/appointments` + (params.toString() ? `?${params.toString()}` : '');
-  const res = await fetch(url);
+        // Use configured API base URL so dev server and production call the correct backend
+        const url = `${API_BASE_URL}/reports/appointments` + (params.toString() ? `?${params.toString()}` : '');
+        const res = await fetch(url);
         const analytics = await res.json();
         if (analytics == null || analytics.message) {
           // fall back to local sample if server returns no data
@@ -107,7 +109,7 @@ const Reports = () => {
     // If customers, fetch from backend employee customers endpoint
     if (reportType === 'customers') {
       try {
-        const url = `${API_BASE_URL}/employee/customers`;
+  const url = `${API_BASE_URL}/employee/customers${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch customers');
         const customers = await res.json();
@@ -156,7 +158,7 @@ const Reports = () => {
     // If employees, fetch server employee performance analytics
     if (reportType === 'employees') {
       try {
-        const url = `${API_BASE_URL}/reports/employees`;
+  const url = `${API_BASE_URL}/reports/employees${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch employees');
         const analytics = await res.json();
@@ -200,9 +202,11 @@ const Reports = () => {
       try {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const overviewUrl = `${API_BASE_URL}/admin/analytics/overview${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+        const revenueUrl = `${API_BASE_URL}/admin/analytics/revenue/by-service${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
         const [overviewRes, revenueRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/admin/analytics/overview`, { headers }),
-          fetch(`${API_BASE_URL}/admin/analytics/revenue/by-service`, { headers })
+          fetch(overviewUrl, { headers }),
+          fetch(revenueUrl, { headers })
         ]);
 
         if (!overviewRes.ok || !revenueRes.ok) throw new Error('Failed to fetch financial analytics');
@@ -243,7 +247,8 @@ const Reports = () => {
       try {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE_URL}/admin/analytics/feedback-rating`, { headers });
+  const feedbackUrl = `${API_BASE_URL}/admin/analytics/feedback-rating${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+  const res = await fetch(feedbackUrl, { headers });
         if (!res.ok) throw new Error('Failed to fetch feedback analytics');
         const ratingData = await res.json();
 

@@ -87,8 +87,11 @@ public class ReportController {
     }
 
     @GetMapping("/employees")
-    public ResponseEntity<?> employees() {
-        Map<String, Object> analytics = reportService.buildEmployeeAnalytics();
+    public ResponseEntity<?> employees(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+        java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+        java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+        Map<String, Object> analytics = reportService.buildEmployeeAnalytics(sd, ed);
         if (analytics == null || analytics.isEmpty()) {
             return ResponseEntity.ok(Map.of("message", "No report data found."));
         }

@@ -145,11 +145,11 @@ const AdminDashboard = () => {
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <AppointmentTrendsChart 
+          <AppointmentTrendsChart
             data={dashboardData.dailyTrends}
             title="7-Day Appointment & Revenue Trends"
           />
-          <StatusDistributionChart 
+          <StatusDistributionChart
             data={dashboardData.statusDistribution}
             title="Appointment Status Distribution"
           />
@@ -157,11 +157,11 @@ const AdminDashboard = () => {
 
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <ServicePopularityChart 
+          <ServicePopularityChart
             data={dashboardData.servicePopularity}
             title="Most Popular Services"
           />
-          <CustomerActivityChart 
+          <CustomerActivityChart
             data={dashboardData.customerActivity}
             title="Customer Growth (Last 12 Months)"
           />
@@ -189,14 +189,14 @@ const AdminDashboard = () => {
                 {dashboardData.revenueByService.map((service, index) => {
                   const totalRevenue = dashboardData.revenueByService.reduce((sum, s) => sum + s.revenue, 0);
                   const percentage = totalRevenue > 0 ? (service.revenue / totalRevenue) * 100 : 0;
-                  
+
                   return (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{service.service}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-semibold text-green-600">
+                        <div className="text-sm font-semibold text-green-600">
                           ${service.revenue.toFixed(2)}
                         </div>
                       </td>
@@ -204,7 +204,7 @@ const AdminDashboard = () => {
                         <div className="flex items-center">
                           <div className="text-sm text-gray-900">{percentage.toFixed(1)}%</div>
                           <div className="ml-2 bg-gray-200 rounded-full h-2 w-20">
-                            <div 
+                            <div
                               className="bg-[#7A85C1] h-2 rounded-full"
                               style={{ width: `${percentage}%` }}
                             ></div>

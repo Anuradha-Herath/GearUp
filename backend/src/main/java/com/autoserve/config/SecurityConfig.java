@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -43,6 +44,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/chatbot/**").permitAll() // Allow chatbot access for all users
                 .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
+                // Permit CORS preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // During local development allow all /api requests (temporary)
+                .requestMatchers("/api/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll() // Allow actuator endpoints for local health checks
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

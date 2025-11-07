@@ -298,6 +298,192 @@ const adminService = {
     }
     return response.json();
   },
+
+  // Appointment Management
+  getAllAppointments: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/appointments`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch appointments');
+    }
+    return response.json();
+  },
+
+  getAppointmentById: async (id) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/appointments/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch appointment');
+    }
+    return response.json();
+  },
+
+  getAppointmentsByStatus: async (status) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/appointments/status/${status}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch appointments by status');
+    }
+    return response.json();
+  },
+
+  updateAppointmentStatus: async (id, status) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/appointments/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update appointment status');
+    }
+    return response.json();
+  },
+
+  getAppointmentStatistics: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/appointments/statistics`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch appointment statistics');
+    }
+    return response.json();
+  },
+
+  // Analytics endpoints
+  getDashboardOverview: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/overview`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch dashboard overview');
+    }
+    return response.json();
+  },
+
+  getAppointmentStatusDistribution: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/appointments/status-distribution`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch appointment status distribution');
+    }
+    return response.json();
+  },
+
+  getDailyAppointmentTrends: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/appointments/daily-trends`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch daily appointment trends');
+    }
+    return response.json();
+  },
+
+  getMonthlyAppointmentTrends: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/appointments/monthly-trends`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch monthly appointment trends');
+    }
+    return response.json();
+  },
+
+  getServicePopularity: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/services/popularity`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch service popularity');
+    }
+    return response.json();
+  },
+
+  getCustomerActivity: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/customers/activity`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch customer activity');
+    }
+    return response.json();
+  },
+
+  getDailyAppointmentsCurrentMonth: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/appointments/daily-current-month`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch daily appointments');
+    }
+    return response.json();
+  },
+
+  getRevenueByService: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admin/analytics/revenue/by-service`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch revenue by service');
+    }
+    return response.json();
+  },
 };
 
 export default adminService;

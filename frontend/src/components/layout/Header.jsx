@@ -1,7 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
-const Navbar = () => (
+const Navbar = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
   <header className="sticky top-0 z-50 w-full bg-navbar-color backdrop-blur-sm">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex h-16 items-center justify-between">
@@ -14,17 +24,32 @@ const Navbar = () => (
           <span className="text-2xl font-bold text-gray-900 dark:text-white">GearUp</span>
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
-          <a className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" href="#">Services</a>
-          <a className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" href="#">About Us</a>
-          <a className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" href="#">Contact</a>
+          <Link className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" to="/services">Services</Link>
+          <Link className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" to="/about">About Us</Link>
+          <Link className="text-sm font-medium text-gray-100 transition-colors hover:text-primary" to="/contact">Contact</Link>
         </nav>
-        <div className="flex items-center gap-2">
-          <Link className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" to="/login"> Login </Link>
-          <Link className="inline-flex h-10 items-center justify-center rounded-lg bg-primary/20 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" to="/signup"> Sign Up </Link>
-        </div>
+        {user ? (
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-100">
+              Welcome, {user?.name || 'User'}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" to="/login"> Login </Link>
+            <Link className="inline-flex h-10 items-center justify-center rounded-lg bg-primary/20 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark" to="/signup"> Sign Up </Link>
+          </div>
+        )}
       </div>
     </div>
   </header>
 );
+};
 
 export default Navbar;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import authService from '../../services/authService';
 
 const Login = () => {
@@ -10,6 +11,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -24,19 +27,28 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await authService.login(formData);
-      // Get user role from response or localStorage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const role = user.role || response.role || 'USER';
-
-      // Redirect based on role
-      if (role === 'ADMIN') {
-        navigate('/admin/dashboard');
-      } else if (role === 'EMPLOYEE') {
-        navigate('/employee/dashboard');
+      // Use the login method from AuthContext which updates the context state
+      await login(formData);
+      
+      // Get the intended destination or redirect based on role
+      const from = location.state?.from?.pathname || location.state?.returnUrl;
+      
+      if (from) {
+        navigate(from, { replace: true });
       } else {
-        // Default to customer dashboard for USER role
-        navigate('/customer/dashboard');
+        // Get user role from localStorage (set by authService.login)
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const role = user.role || 'USER';
+
+        // Redirect based on role
+        if (role === 'ADMIN') {
+          navigate('/admin/dashboard', { replace: true });
+        } else if (role === 'EMPLOYEE') {
+          navigate('/employee/dashboard', { replace: true });
+        } else {
+          // Default to customer dashboard for USER role
+          navigate('/customer/dashboard', { replace: true });
+        }
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
@@ -64,6 +76,11 @@ const Login = () => {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {location.state?.message && (
+            <div className="mb-4 p-3 text-blue-600 bg-blue-50 border border-blue-200 rounded-md text-center">
+              {location.state.message}
+            </div>
+          )}
           {error && (
             <div className="mb-4 p-3 text-red-600 bg-red-50 border border-red-200 rounded-md text-center">
               {error}

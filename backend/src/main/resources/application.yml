@@ -27,14 +27,15 @@ management:
       enabled: true
 
 ---
+
 spring:
   config:
     activate:
       on-profile: dev
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?createDatabaseIfNotExist=true}
     username: ${DATABASE_USERNAME:root}
-    password: ${DATABASE_PASSWORD}
+    password: ${DATABASE_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -62,12 +63,12 @@ spring:
     enabled: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:my-secret-key}
   expiration: ${JWT_EXPIRATION:86400000}
 
 sendgrid:
   api:
-    key: ${SENDGRID_API_KEY:your-sendgrid-api-key}
+    key: ${SENDGRID_API_KEY}
   from:
     email: ${SENDGRID_FROM_EMAIL:noreply@autoserve.com}
 
@@ -79,6 +80,7 @@ gemini:
     key: ${GEMINI_API_KEY}
 
 ---
+
 spring:
   config:
     activate:
@@ -102,6 +104,7 @@ app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost}
 
 ---
+
 spring:
   config:
     activate:

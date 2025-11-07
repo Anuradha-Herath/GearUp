@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Services = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -86,7 +88,19 @@ const Services = () => {
   );
 
   const handleServiceClick = (service) => {
-    navigate(`/service/${service.id}`, { state: { service } });
+    // Check if user is authenticated
+    if (!user) {
+      // Redirect to login if not authenticated
+      navigate('/login', { 
+        state: { 
+          returnUrl: `/services`,
+          message: 'Please login to book services' 
+        } 
+      });
+    } else {
+      // If authenticated, navigate to service details
+      navigate(`/service/${service.id}`, { state: { service } });
+    }
   };
 
   // Loading state
@@ -119,6 +133,15 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Login Banner for non-authenticated users */}
+      {!user && (
+        <div className="bg-blue-500 text-white py-3 px-4 text-center">
+          <p className="text-sm md:text-base">
+            💡 <strong>Please login to book services</strong> - Click any service to sign in
+          </p>
+        </div>
+      )}
+      
       {/* Services Section */}
       <div className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

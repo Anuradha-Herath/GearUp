@@ -14,7 +14,7 @@ const CustomerLayout = ({ children }) => {
 
   const menuItems = [
     { path: '/customer/dashboard', label: 'Dashboard' },
-    { path: '/customer/services', label: 'Services' },
+    { path: '/services', label: 'Services' },
     { path: '/customer/my-bookings', label: 'My Bookings' },
     { path: '/customer/service-progress', label: 'Service Progress' },
     { path: '/customer/feedbacks', label: 'Feedbacks' },

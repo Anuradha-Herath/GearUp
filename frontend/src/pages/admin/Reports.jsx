@@ -28,11 +28,22 @@ ChartJS.register(
 );
 
 const Reports = () => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
   const [reportType, setReportType] = useState('appointments');
   const [dateRange, setDateRange] = useState('last30days');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Keep the UI consistent: statusFilter only applies to appointments but should remain visible.
+  const isStatusApplicable = (type) => type === 'appointments';
+
+  // When switching away from appointments, reset status filter to 'all' so selections remain consistent
+  useEffect(() => {
+    if (!isStatusApplicable(reportType) && statusFilter !== 'all') {
+      setStatusFilter('all');
+    }
+  }, [reportType]);
 
   // Generate sample report data based on filters
   useEffect(() => {
@@ -40,30 +51,32 @@ const Reports = () => {
   }, [reportType, dateRange, statusFilter]);
   const generateReport = async () => {
     setLoading(true);
+    // compute startDate/endDate strings from dateRange for use across reports
+    const today = new Date();
+    let start = null;
+    if (dateRange === 'last7days') {
+      const d = new Date(); d.setDate(today.getDate() - 6); start = d;
+    } else if (dateRange === 'last30days') {
+      const d = new Date(); d.setDate(today.getDate() - 29); start = d;
+    } else if (dateRange === 'last3months') {
+      const d = new Date(); d.setMonth(today.getMonth() - 3); start = d;
+    } else if (dateRange === 'last6months') {
+      const d = new Date(); d.setMonth(today.getMonth() - 6); start = d;
+    } else if (dateRange === 'lastyear') {
+      const d = new Date(); d.setFullYear(today.getFullYear() - 1); start = d;
+    }
+    const fmt = (dt) => dt.toISOString().slice(0,10);
+    const startDate = start ? fmt(start) : null;
+    const endDate = fmt(today);
 
     // If appointments, fetch server analytics
     if (reportType === 'appointments') {
       try {
         // build query params from dateRange and statusFilter
         const params = new URLSearchParams();
-        const today = new Date();
-        let start = null;
-        if (dateRange === 'last7days') {
-          const d = new Date(); d.setDate(today.getDate() - 6); start = d;
-        } else if (dateRange === 'last30days') {
-          const d = new Date(); d.setDate(today.getDate() - 29); start = d;
-        } else if (dateRange === 'last3months') {
-          const d = new Date(); d.setMonth(today.getMonth() - 3); start = d;
-        } else if (dateRange === 'last6months') {
-          const d = new Date(); d.setMonth(today.getMonth() - 6); start = d;
-        } else if (dateRange === 'lastyear') {
-          const d = new Date(); d.setFullYear(today.getFullYear() - 1); start = d;
-        }
-        if (start) {
-          // format as yyyy-mm-dd
-          const fmt = (dt) => dt.toISOString().slice(0,10);
-          params.set('startDate', fmt(start));
-          params.set('endDate', fmt(today));
+        if (startDate) {
+          params.set('startDate', startDate);
+          params.set('endDate', endDate);
         }
         // map frontend status filter to backend status values
         if (statusFilter && statusFilter !== 'all') {
@@ -72,7 +85,8 @@ const Reports = () => {
           // 'active' and others left unset to be handled server-side in future
         }
 
-        const url = '/api/reports/appointments' + (params.toString() ? `?${params.toString()}` : '');
+        // Use configured API base URL so dev server and production call the correct backend
+        const url = `${API_BASE_URL}/reports/appointments` + (params.toString() ? `?${params.toString()}` : '');
         const res = await fetch(url);
         const analytics = await res.json();
         if (analytics == null || analytics.message) {
@@ -92,6 +106,179 @@ const Reports = () => {
       return;
     }
 
+    // If customers, fetch from backend employee customers endpoint
+    if (reportType === 'customers') {
+      try {
+  const url = `${API_BASE_URL}/employee/customers${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch customers');
+        const customers = await res.json();
+        // Map to reportData shape
+        const totalCustomers = Array.isArray(customers) ? customers.length : 0;
+        const totalVehicles = Array.isArray(customers) ? customers.reduce((sum, c) => sum + (c.vehicleCount || 0), 0) : 0;
+        const rows = Array.isArray(customers) ? customers.map(c => ({
+          id: c.id,
+          name: c.name || c.username,
+          email: c.email,
+          phone: c.phone,
+          totalBookings: c.totalBookings || 0,
+          vehicleCount: c.vehicleCount || 0
+        })) : [];
+
+        const chartData = {
+          labels: rows.map(r => r.name),
+          datasets: [
+            {
+              label: 'Total Bookings',
+              data: rows.map(r => r.totalBookings),
+              backgroundColor: 'rgba(122, 133, 193, 0.6)'
+            },
+            {
+              label: 'Vehicles',
+              data: rows.map(r => r.vehicleCount),
+              backgroundColor: 'rgba(34, 197, 94, 0.6)'
+            }
+          ]
+        };
+
+        setReportData({
+          summary: { totalCustomers, totalVehicles },
+          chartData,
+          chartType: 'bar',
+          rows
+        });
+      } catch (err) {
+        console.error('Failed to fetch customers report', err);
+        setReportData(generateCustomerReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    // If employees, fetch server employee performance analytics
+    if (reportType === 'employees') {
+      try {
+  const url = `${API_BASE_URL}/reports/employees${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch employees');
+        const analytics = await res.json();
+        if (analytics == null || analytics.message) {
+          setReportData(generateEmployeeReport());
+        } else {
+          const employees = Array.isArray(analytics.employees) ? analytics.employees : [];
+          const totalEmployees = analytics.totalEmployees != null ? analytics.totalEmployees : employees.length;
+          const rows = employees.map(e => ({
+            id: e.id,
+            name: e.name,
+            appointmentsCount: e.appointmentsCount || 0
+          }));
+
+          const chartData = {
+            labels: rows.map(r => r.name),
+            datasets: [{
+              label: 'Appointments Handled',
+              data: rows.map(r => r.appointmentsCount),
+              backgroundColor: 'rgba(122, 133, 193, 0.8)'
+            }]
+          };
+
+          setReportData({
+            summary: { totalEmployees, totalAppointments: rows.reduce((s, r) => s + r.appointmentsCount, 0) },
+            chartData,
+            chartType: 'bar',
+            rows
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch employees report', err);
+        setReportData(generateEmployeeReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    // If financial, attempt to fetch admin overview and revenue by service
+    if (reportType === 'financial') {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const overviewUrl = `${API_BASE_URL}/admin/analytics/overview${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+        const revenueUrl = `${API_BASE_URL}/admin/analytics/revenue/by-service${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+        const [overviewRes, revenueRes] = await Promise.all([
+          fetch(overviewUrl, { headers }),
+          fetch(revenueUrl, { headers })
+        ]);
+
+        if (!overviewRes.ok || !revenueRes.ok) throw new Error('Failed to fetch financial analytics');
+
+        const overview = await overviewRes.json();
+        const revenueList = await revenueRes.json();
+
+        // Map to reportData
+        const totalRevenue = overview.totalRevenue || 0;
+        const totalAppointments = overview.totalAppointments || 0;
+
+        const chartData = {
+          labels: revenueList.map(r => r.service),
+          datasets: [{
+            label: 'Revenue by Service',
+            data: revenueList.map(r => r.revenue),
+            backgroundColor: 'rgba(122, 133, 193, 0.8)'
+          }]
+        };
+
+        setReportData({
+          summary: { totalRevenue, totalAppointments },
+          chartData,
+          chartType: 'bar',
+          rows: revenueList.map(r => ({ service: r.service, revenue: r.revenue }))
+        });
+      } catch (err) {
+        console.error('Failed to fetch financial report', err);
+        setReportData(generateFinancialReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // If feedbacks, attempt to fetch admin feedback rating analytics
+    if (reportType === 'feedbacks') {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const feedbackUrl = `${API_BASE_URL}/admin/analytics/feedback-rating${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
+  const res = await fetch(feedbackUrl, { headers });
+        if (!res.ok) throw new Error('Failed to fetch feedback analytics');
+        const ratingData = await res.json();
+
+        // ratingData expected shape: { distribution: { '5': n, '4': n, ... }, total: n, average: x }
+        const distribution = ratingData.distribution || {};
+        const totalFeedbacks = ratingData.total || Object.values(distribution).reduce((s, v) => s + v, 0);
+        const avg = ratingData.average || Object.entries(distribution).reduce((s, [star, cnt]) => s + Number(star) * cnt, 0) / Math.max(totalFeedbacks, 1);
+
+        const chartData = {
+          labels: ['5★', '4★', '3★', '2★', '1★'],
+          datasets: [{
+            label: 'Feedbacks',
+            data: [distribution['5'] || 0, distribution['4'] || 0, distribution['3'] || 0, distribution['2'] || 0, distribution['1'] || 0],
+            backgroundColor: ['rgba(34,197,94,0.8)','rgba(132,204,22,0.8)','rgba(251,191,36,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)']
+          }]
+        };
+
+        setReportData({
+          summary: { totalFeedbacks, averageRating: `${avg.toFixed(2)} / 5` },
+          chartData,
+          chartType: 'doughnut'
+        });
+      } catch (err) {
+        console.error('Failed to fetch feedback report', err);
+        setReportData(generateFeedbackReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     // Non-appointments: keep existing local sample generators
     setTimeout(() => {
       let data;
@@ -174,6 +361,33 @@ const Reports = () => {
       // keep raw rows for detailed table if needed
       rows: rows,
     };
+  };
+
+  // Normalize any reportData into a consistent UI shape: { summary: [{label, value}], table: { columns: [], rows: [] }, chartData }
+  const normalizeReportData = (data, type) => {
+    if (!data) return { summary: [], table: { columns: [], rows: [] }, chartData: null };
+
+    const summaryEntries = Object.entries(data.summary || {}).map(([k, v]) => ({
+      label: k.replace(/([A-Z])/g, ' $1').trim(),
+      value: v,
+    }));
+
+    // Prefer explicit rows if provided (arrays of objects)
+    if (Array.isArray(data.rows) && data.rows.length > 0) {
+      const cols = Object.keys(data.rows[0]);
+      const rows = data.rows.map(r => cols.map(c => r[c]));
+      return { summary: summaryEntries, table: { columns: cols, rows }, chartData: data.chartData || data.chartData };
+    }
+
+    // Fallback: derive table from chartData (datasets x labels)
+    if (data.chartData && Array.isArray(data.chartData.labels)) {
+      const cols = ['Series', ...data.chartData.labels];
+      const rows = (data.chartData.datasets || []).map(ds => [ds.label || 'Series', ...(ds.data || [])]);
+      return { summary: summaryEntries, table: { columns: cols, rows }, chartData: data.chartData };
+    }
+
+    // Last resort: empty table
+    return { summary: summaryEntries, table: { columns: [], rows: [] }, chartData: data.chartData || null };
   };
 
   const generateAppointmentReport = () => {
@@ -502,6 +716,8 @@ const Reports = () => {
 
   const renderChart = () => {
     if (!reportData) return null;
+    const chartDataParam = reportData.chartData;
+    if (!chartDataParam) return null;
 
     const options = {
       responsive: true,
@@ -515,18 +731,20 @@ const Reports = () => {
         },
       },
     };
-
-    switch (reportData.chartType) {
+    switch ((reportData.chartType) || (chartDataParam.type)) {
       case 'bar':
-        return <Bar data={reportData.chartData} options={options} />;
+        return <Bar data={chartDataParam} options={options} />;
       case 'line':
-        return <Line data={reportData.chartData} options={options} />;
+        return <Line data={chartDataParam} options={options} />;
       case 'doughnut':
-        return <Doughnut data={reportData.chartData} options={options} />;
+        return <Doughnut data={chartDataParam} options={options} />;
       default:
-        return <Bar data={reportData.chartData} options={options} />;
+        return <Bar data={chartDataParam} options={options} />;
     }
   };
+
+  // compute normalized view once per render
+  const normalized = reportData ? normalizeReportData(reportData, reportType) : null;
 
   return (
     <div className="space-y-6">
@@ -586,13 +804,18 @@ const Reports = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A85C1]"
+              disabled={!isStatusApplicable(reportType)}
+              title={!isStatusApplicable(reportType) ? 'Status filter applies only to Appointments' : 'Filter by appointment status'}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A85C1] ${!isStatusApplicable(reportType) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
               <option value="all">All Status</option>
               <option value="active">Active Only</option>
               <option value="completed">Completed Only</option>
               <option value="cancelled">Cancelled Only</option>
             </select>
+            {!isStatusApplicable(reportType) && (
+              <div className="text-xs text-gray-500 mt-1">Status filter is only applicable to the Appointments report.</div>
+            )}
           </div>
         </div>
 
@@ -607,14 +830,12 @@ const Reports = () => {
       </div>
 
       {/* Summary Cards */}
-      {reportData && (
+      {normalized && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Object.entries(reportData.summary).map(([key, value]) => (
-            <div key={key} className="bg-white p-4 rounded-lg shadow-md border">
-              <div className="text-sm text-gray-500 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </div>
-              <div className="text-2xl font-bold text-black mt-1">{value}</div>
+          {normalized.summary.map(s => (
+            <div key={s.label} className="bg-white p-4 rounded-lg shadow-md border">
+              <div className="text-sm text-gray-500">{s.label}</div>
+              <div className="text-2xl font-bold text-black mt-1">{s.value}</div>
             </div>
           ))}
         </div>
@@ -627,7 +848,7 @@ const Reports = () => {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7A85C1]"></div>
           </div>
-        ) : reportData ? (
+        ) : normalized ? (
           <div className="h-64">
             {renderChart()}
           </div>
@@ -645,37 +866,30 @@ const Reports = () => {
             <h2 className="text-xl font-semibold text-black">Detailed Data</h2>
           </div>
           <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {reportData.chartData.labels.map((label, index) => (
-                      <th key={index} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    {reportData.chartData.datasets[0].data.map((value, index) => (
-                      <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {value}
-                      </td>
-                    ))}
-                  </tr>
-                  {reportData.chartData.datasets.length > 1 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      {reportData.chartData.datasets[1].data.map((value, index) => (
-                        <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                          {value}
-                        </td>
+                      {normalized.table.columns.map((col, ci) => (
+                        <th key={ci} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {String(col).replace(/([A-Z])/g, ' $1').trim()}
+                        </th>
                       ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {normalized.table.rows.map((r, ri) => (
+                      <tr key={ri}>
+                        {r.map((cell, ci) => (
+                          <td key={ci} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
           </div>
         </div>
       )}

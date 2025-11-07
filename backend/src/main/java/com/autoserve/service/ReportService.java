@@ -135,17 +135,36 @@ public class ReportService {
      * Build simple employee performance analytics.
      */
     public Map<String, Object> buildEmployeeAnalytics() {
+        return buildEmployeeAnalytics(null, null);
+    }
+
+    public Map<String, Object> buildEmployeeAnalytics(java.time.LocalDate startDate, java.time.LocalDate endDate) {
         List<Employee> employees = employeeRepository.findAll();
         List<Appointment> all = appointmentRepository.findAll();
         List<Employee> employeeList = employees == null ? Collections.emptyList() : employees;
         List<Appointment> appointmentList = all == null ? Collections.emptyList() : all;
 
-        Map<String, Object> out = new LinkedHashMap<>();
+        // Apply optional date filtering to appointmentList into a separate variable to keep appointmentList effectively final
+        final java.time.LocalDate sd = startDate;
+        final java.time.LocalDate ed = endDate;
+        final List<Appointment> filteredAppointments;
+        if (sd != null || ed != null) {
+            filteredAppointments = appointmentList.stream().filter(a -> {
+                if (a.getDate() == null) return false;
+                if (sd != null && a.getDate().isBefore(sd)) return false;
+                if (ed != null && a.getDate().isAfter(ed)) return false;
+                return true;
+            }).collect(Collectors.toList());
+        } else {
+            filteredAppointments = appointmentList;
+        }
+
+    Map<String, Object> out = new LinkedHashMap<>();
         List<Map<String, Object>> list = employeeList.stream().map(e -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", e.getId());
             m.put("name", e.getName());
-            long count = appointmentList.stream().filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getEmployee().getId().equals(e.getId())).count();
+            long count = filteredAppointments.stream().filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getEmployee().getId().equals(e.getId())).count();
             m.put("appointmentsCount", count);
             return m;
         }).collect(Collectors.toList());

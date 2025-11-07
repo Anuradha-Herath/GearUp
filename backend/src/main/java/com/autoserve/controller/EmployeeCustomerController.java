@@ -24,7 +24,11 @@ public class EmployeeCustomerController {
     private final VehicleRepository vehicleRepository;
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllCustomers() {
+    public ResponseEntity<List<Map<String, Object>>> getAllCustomers(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                                       @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+        java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+        java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+
         List<User> customers = userRepository.findByRole("CUSTOMER");
         
         List<Map<String, Object>> customerDetails = customers.stream().map(customer -> {
@@ -35,8 +39,20 @@ public class EmployeeCustomerController {
             details.put("phone", customer.getPhoneNumber() != null ? customer.getPhoneNumber() : "Not provided");
             details.put("username", customer.getUsername());
             
-            // Count total bookings for this customer
-            long totalBookings = appointmentRepository.countByCustomerId(customer.getId());
+            // Count total bookings for this customer (apply optional date filter)
+            long totalBookings;
+            if (sd != null || ed != null) {
+                List<com.autoserve.entity.Appointment> appts = appointmentRepository.findByCustomerId(customer.getId());
+                totalBookings = appts.stream()
+                        .filter(a -> {
+                            if (a.getDate() == null) return false;
+                            if (sd != null && a.getDate().isBefore(sd)) return false;
+                            if (ed != null && a.getDate().isAfter(ed)) return false;
+                            return true;
+                        }).count();
+            } else {
+                totalBookings = appointmentRepository.countByCustomerId(customer.getId());
+            }
             details.put("totalBookings", totalBookings);
             
             // Count vehicles for this customer

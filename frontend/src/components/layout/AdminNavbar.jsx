@@ -18,7 +18,7 @@ const AdminNavbar = () => {
   return (
     <nav className="bg-navbar-color p-4 ml-64">
       <div className="flex justify-between items-center">
-        <h1 className="text-white text-xl font-bold">Admin Panel - AutoServe</h1>
+        <h1 className="text-white text-xl font-bold">Admin Panel - GearUp</h1>
         <div className="text-white flex items-center gap-4">
           <span>Welcome, {user?.username || 'Admin'}</span>
           <button

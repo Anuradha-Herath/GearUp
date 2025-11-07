@@ -41,6 +41,9 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/chatbot/**").permitAll() // Allow chatbot access for all users
+                .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
                 // Permit CORS preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // During local development allow all /api requests (temporary)

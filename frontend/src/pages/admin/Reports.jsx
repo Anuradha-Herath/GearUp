@@ -143,6 +143,48 @@ const Reports = () => {
       }
       return;
     }
+    // If employees, fetch server employee performance analytics
+    if (reportType === 'employees') {
+      try {
+        const url = `${API_BASE_URL}/reports/employees`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch employees');
+        const analytics = await res.json();
+        if (analytics == null || analytics.message) {
+          setReportData(generateEmployeeReport());
+        } else {
+          const employees = Array.isArray(analytics.employees) ? analytics.employees : [];
+          const totalEmployees = analytics.totalEmployees != null ? analytics.totalEmployees : employees.length;
+          const rows = employees.map(e => ({
+            id: e.id,
+            name: e.name,
+            appointmentsCount: e.appointmentsCount || 0
+          }));
+
+          const chartData = {
+            labels: rows.map(r => r.name),
+            datasets: [{
+              label: 'Appointments Handled',
+              data: rows.map(r => r.appointmentsCount),
+              backgroundColor: 'rgba(122, 133, 193, 0.8)'
+            }]
+          };
+
+          setReportData({
+            summary: { totalEmployees, totalAppointments: rows.reduce((s, r) => s + r.appointmentsCount, 0) },
+            chartData,
+            chartType: 'bar',
+            rows
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch employees report', err);
+        setReportData(generateEmployeeReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     // Non-appointments: keep existing local sample generators
     setTimeout(() => {
       let data;

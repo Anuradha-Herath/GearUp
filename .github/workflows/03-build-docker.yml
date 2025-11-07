@@ -1,0 +1,233 @@
+# ==============================================================================
+# Docker Build Pipeline - Build and Push Docker Images
+# ==============================================================================
+# This workflow builds Docker images for backend and frontend services
+# and pushes them to Docker Hub (or other registry) on successful tests
+#
+# Triggers:
+#   - Successful completion of CI pipelines on main and develop
+#   - Manual trigger (workflow_dispatch)
+# ==============================================================================
+
+name: Docker Build
+
+on:
+  workflow_run:
+    workflows:
+      - Backend CI
+      - Frontend CI
+    types:
+      - completed
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'docker/**'
+      - 'backend/**'
+      - 'frontend/**'
+
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      backend-tag: ${{ steps.tags.outputs.backend-tag }}
+      frontend-tag: ${{ steps.tags.outputs.frontend-tag }}
+      registry: ${{ steps.registry.outputs.registry }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate image tags
+        id: tags
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c 1-7)
+          TIMESTAMP=$(date +%s)
+          
+          if [ "$BRANCH" = "main" ]; then
+            BACKEND_TAG="latest,${SHORT_SHA},prod-${TIMESTAMP}"
+            FRONTEND_TAG="latest,${SHORT_SHA},prod-${TIMESTAMP}"
+          else
+            BACKEND_TAG="${BRANCH}-${SHORT_SHA},dev-${TIMESTAMP}"
+            FRONTEND_TAG="${BRANCH}-${SHORT_SHA},dev-${TIMESTAMP}"
+          fi
+          
+          echo "backend-tag=${BACKEND_TAG}" >> $GITHUB_OUTPUT
+          echo "frontend-tag=${FRONTEND_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Determine registry
+        id: registry
+        run: |
+          REGISTRY="${{ secrets.DOCKER_REGISTRY || 'docker.io' }}"
+          echo "registry=${REGISTRY}" >> $GITHUB_OUTPUT
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: secrets.DOCKER_USERNAME != ''
+
+      - name: Log in to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+        if: secrets.REGISTRY_URL != ''
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKER_USERNAME }}/gearup-backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          dockerfile: docker/backend.Dockerfile
+          push: ${{ secrets.DOCKER_USERNAME != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: secrets.DOCKER_USERNAME != ''
+
+      - name: Log in to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+        if: secrets.REGISTRY_URL != ''
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKER_USERNAME }}/gearup-frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          dockerfile: docker/frontend.Dockerfile
+          push: ${{ secrets.DOCKER_USERNAME != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: always()
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.build-backend.result }}" = "success" ] && [ "${{ needs.build-frontend.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify Slack on success
+        if: steps.status.outputs.status == 'success'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Docker images built successfully",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Docker Build Successful* ✅\nBoth backend and frontend images have been built and pushed\nBranch: `${{ github.ref }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack on failure
+        if: steps.status.outputs.status == 'failure'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Docker build failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Docker Build Failed* 🚨"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

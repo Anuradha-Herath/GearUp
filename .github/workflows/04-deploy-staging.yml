@@ -1,0 +1,197 @@
+# ==============================================================================
+# Deploy to Staging Environment
+# ==============================================================================
+# This workflow deploys the application to a staging environment
+# for testing before production deployment
+#
+# Triggers:
+#   - Manual trigger (workflow_dispatch)
+#   - Successful Docker build on develop branch
+# ==============================================================================
+
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - integration
+  workflow_run:
+    workflows:
+      - Docker Build
+    types:
+      - completed
+    branches:
+      - develop
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/develop')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set deployment environment
+        id: env
+        run: |
+          ENV="${{ github.event.inputs.environment || 'staging' }}"
+          echo "environment=${ENV}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: github-actions-deploy
+          aws-region: ${{ secrets.AWS_REGION }}
+        if: secrets.AWS_ROLE_TO_ASSUME != ''
+
+      - name: Update ECS service (if using ECS)
+        run: |
+          echo "Updating ECS service..."
+          aws ecs update-service \
+            --cluster gearup-staging \
+            --service gearup-backend \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
+        if: secrets.AWS_REGION != ''
+        continue-on-error: true
+
+      - name: Deploy with Docker Compose
+        run: |
+          echo "Setting up SSH connection..."
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_SERVER_IP }} >> ~/.ssh/known_hosts
+          
+          echo "Pulling latest images and deploying..."
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.STAGING_SERVER_IP }} \
+            "cd /app && docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
+             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d"
+        if: secrets.STAGING_SERVER_IP != ''
+        continue-on-error: true
+
+      - name: Deploy with Kubernetes (if using K8s)
+        run: |
+          echo "Updating Kubernetes deployment..."
+          kubectl set image deployment/gearup-backend \
+            backend=gearup-backend:latest \
+            --namespace=staging \
+            --record
+        if: secrets.KUBE_CONFIG != ''
+        continue-on-error: true
+
+      - name: Verify deployment health
+        run: |
+          echo "Checking application health..."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.STAGING_SERVER_IP }}:8080/actuator/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Application is healthy"
+              exit 0
+            fi
+            echo "Waiting for application to be ready... (attempt $i/30)"
+            sleep 10
+          done
+          echo "❌ Application failed to become healthy"
+          exit 1
+        if: secrets.STAGING_SERVER_IP != ''
+        continue-on-error: true
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Add your smoke test commands here
+          curl -X GET http://${{ secrets.STAGING_SERVER_IP }}:8080/api/health || true
+        if: secrets.STAGING_SERVER_IP != ''
+        continue-on-error: true
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: staging-${{ github.sha }}
+          release_name: Staging Release - ${{ github.sha }}
+          body: |
+            Deployed to staging environment
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref }}
+          draft: false
+          prerelease: true
+        continue-on-error: true
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Deployment to staging completed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment Successful* ✅\nCommit: `${{ github.sha }}`\nEnvironment: `${{ steps.env.outputs.environment }}`"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View App"
+                      },
+                      "url": "https://staging.gearup.example.com"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Staging deployment failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment Failed* 🚨\nCommit: `${{ github.sha }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

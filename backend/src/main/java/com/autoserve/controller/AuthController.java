@@ -19,10 +19,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final com.autoserve.util.JwtUtil jwtUtil;
 
-    public AuthController(AuthService authService, UserRepository userRepository) {
+    public AuthController(AuthService authService, UserRepository userRepository, com.autoserve.util.JwtUtil jwtUtil) {
         this.authService = authService;
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/login")
@@ -89,6 +91,47 @@ public class AuthController {
             return ResponseEntity.ok("Password has been reset successfully. You can now login with your new password.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String token) {
+        try {
+            // Extract JWT token from Authorization header
+            if (token == null || !token.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Invalid or missing token");
+            }
+            
+            String jwtToken = token.substring(7);
+            
+            // First validate the token
+            if (!jwtUtil.validateJwtToken(jwtToken)) {
+                return ResponseEntity.status(401).body("Invalid token");
+            }
+            
+            String username = jwtUtil.getUserNameFromJwtToken(jwtToken);
+            
+            if (username == null) {
+                return ResponseEntity.status(401).body("Invalid token");
+            }
+            
+            var user = userRepository.findByUsername(username)
+                    .orElse(null);
+                    
+            if (user == null || !user.isEnabled()) {
+                return ResponseEntity.status(401).body("User not found or not enabled");
+            }
+            
+            // Return user info without sensitive data
+            java.util.Map<String, Object> userInfo = new java.util.HashMap<>();
+            userInfo.put("id", user.getId());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("role", user.getRole());
+            
+            return ResponseEntity.ok(userInfo);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error validating token: " + e.getMessage());
         }
     }
 

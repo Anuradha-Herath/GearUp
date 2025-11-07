@@ -65,7 +65,7 @@ const HeroSection = ({ isCustomer = false }) => {
           ) : (
             <a
               className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
-              href="#"
+              href="/services"
             >
               Explore Services
             </a>

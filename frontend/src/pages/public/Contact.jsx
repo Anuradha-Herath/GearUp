@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -8,8 +10,8 @@ const Contact = () => {
     subject: '',
     message: ''
   });
-
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
 
   const handleChange = (e) => {
     setFormData({
@@ -18,14 +20,13 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically send the data to your backend
-    console.log('Form submitted:', formData);
-    setSubmitted(true);
-    
-    // Reset form after 3 seconds
+    setIsSubmitting(true);
+
+    // Simulate form submission
     setTimeout(() => {
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
       setFormData({
         name: '',
         email: '',
@@ -33,160 +34,128 @@ const Contact = () => {
         subject: '',
         message: ''
       });
-      setSubmitted(false);
-    }, 3000);
+      setIsSubmitting(false);
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 py-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Contact Us</h1>
-          <p className="text-xl text-white/90 max-w-3xl mx-auto">
-            We're here to help! Get in touch with us for any questions or to schedule a service.
-          </p>
-        </div>
-      </div>
-
-      {/* Contact Information and Form Section */}
-      <div className="py-16 bg-white">
+      <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            {/* Contact Information */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">Get In Touch</h2>
-              
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 rounded-lg p-3 mr-4">
-                    <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Our Location</h3>
-                    <p className="text-gray-600">123 Auto Service Drive</p>
-                    <p className="text-gray-600">Cityville, ST 12345</p>
-                  </div>
-                </div>
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Contact Us</h1>
+            <p className="text-xl text-gray-100">
+              Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            </p>
+          </div>
+        </div>
+      </section>
 
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 rounded-lg p-3 mr-4">
-                    <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Phone</h3>
-                    <p className="text-gray-600">(555) 123-4567</p>
-                    <p className="text-gray-600">Mon-Fri: 8AM - 6PM</p>
-                    <p className="text-gray-600">Sat: 9AM - 4PM</p>
-                  </div>
-                </div>
+      {/* Contact Info & Form Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              {/* Contact Cards */}
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="text-4xl mb-4">📞</div>
+                <h3 className="text-lg font-semibold mb-2">Phone</h3>
+                <p className="text-gray-600 mb-2">Mon-Fri 8am to 8pm</p>
+                <a href="tel:+94112345678" className="text-primary hover:underline">
+                  +94 11 234 5678
+                </a>
+              </div>
 
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 rounded-lg p-3 mr-4">
-                    <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Email</h3>
-                    <p className="text-gray-600">info@gearup.com</p>
-                    <p className="text-gray-600">support@gearup.com</p>
-                  </div>
-                </div>
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="text-4xl mb-4">✉️</div>
+                <h3 className="text-lg font-semibold mb-2">Email</h3>
+                <p className="text-gray-600 mb-2">We'll respond within 24hrs</p>
+                <a href="mailto:support@gearup.com" className="text-primary hover:underline">
+                  support@gearup.com
+                </a>
+              </div>
 
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 bg-primary/10 rounded-lg p-3 mr-4">
-                    <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Business Hours</h3>
-                    <p className="text-gray-600">Monday - Friday: 8:00 AM - 6:00 PM</p>
-                    <p className="text-gray-600">Saturday: 9:00 AM - 4:00 PM</p>
-                    <p className="text-gray-600">Sunday: Closed</p>
-                  </div>
-                </div>
+              <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                <div className="text-4xl mb-4">📍</div>
+                <h3 className="text-lg font-semibold mb-2">Location</h3>
+                <p className="text-gray-600 mb-2">Come visit us</p>
+                <p className="text-primary">
+                  123 Main Street<br />
+                  Colombo, Sri Lanka
+                </p>
               </div>
             </div>
 
             {/* Contact Form */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">Send Us a Message</h2>
-              
-              {submitted && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 font-medium">✓ Thank you! Your message has been sent successfully.</p>
-                </div>
-              )}
-
+            <div className="bg-white rounded-lg shadow-lg p-8 md:p-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="John Doe"
-                  />
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="John Doe"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="john@example.com"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="john@example.com"
-                  />
-                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="+94 71 234 5678"
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    required
-                    value={formData.subject}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="How can we help?"
-                  />
+                  <div>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject *
+                    </label>
+                    <input
+                      type="text"
+                      id="subject"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="How can we help?"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -196,36 +165,79 @@ const Contact = () => {
                   <textarea
                     id="message"
                     name="message"
-                    required
-                    rows="5"
                     value={formData.message}
                     onChange={handleChange}
+                    required
+                    rows={6}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                     placeholder="Tell us more about your inquiry..."
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-primary text-white font-semibold py-3 px-6 rounded-lg hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                >
-                  Send Message
-                </button>
+                <div className="text-center">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-sm font-medium text-white transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Message'
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Map Section (Placeholder) */}
-      <div className="py-16 bg-gray-50">
+      {/* FAQ Section */}
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Find Us</h2>
-          <div className="bg-gray-300 rounded-lg shadow-md h-96 flex items-center justify-center">
-            <p className="text-gray-600 text-lg">Map integration coming soon</p>
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Frequently Asked Questions</h2>
+            <div className="space-y-6">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-2">What are your business hours?</h3>
+                <p className="text-gray-600">
+                  We're open Monday to Friday from 8:00 AM to 8:00 PM, and Saturdays from 9:00 AM to 5:00 PM.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-2">How do I book a service appointment?</h3>
+                <p className="text-gray-600">
+                  You can easily book an appointment by <Link to="/signup" className="text-primary hover:underline">signing up</Link> for an account 
+                  and navigating to the <Link to="/services" className="text-primary hover:underline">services page</Link>. Choose your desired service 
+                  and select a convenient time slot.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-2">Do you offer emergency services?</h3>
+                <p className="text-gray-600">
+                  Yes, we offer 24/7 emergency roadside assistance. Please call our emergency hotline at +94 77 777 7777.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-2">What payment methods do you accept?</h3>
+                <p className="text-gray-600">
+                  We accept cash, credit/debit cards, and mobile payment options for your convenience.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

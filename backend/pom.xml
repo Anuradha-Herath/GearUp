@@ -109,6 +109,7 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
+        </dependency>
         <!-- PDF generation library (OpenPDF) -->
         <dependency>
             <groupId>com.github.librepdf</groupId>

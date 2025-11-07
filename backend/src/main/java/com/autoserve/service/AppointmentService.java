@@ -258,11 +258,8 @@ public class AppointmentService {
         Appointment updatedAppointment = appointmentRepository.save(appointment);
         // Sync to vector DB
         vectorDBService.updateAppointment(updatedAppointment);
+        System.out.println("Appointment status updated successfully to: " + updatedAppointment.getStatus());
         return updatedAppointment;
-        Appointment savedAppointment = appointmentRepository.save(appointment);
-        System.out.println("Appointment status updated successfully to: " + savedAppointment.getStatus());
-        
-        return savedAppointment;
     }
 
     private boolean isValidStatus(String status) {

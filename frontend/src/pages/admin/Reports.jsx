@@ -35,6 +35,16 @@ const Reports = () => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Keep the UI consistent: statusFilter only applies to appointments but should remain visible.
+  const isStatusApplicable = (type) => type === 'appointments';
+
+  // When switching away from appointments, reset status filter to 'all' so selections remain consistent
+  useEffect(() => {
+    if (!isStatusApplicable(reportType) && statusFilter !== 'all') {
+      setStatusFilter('all');
+    }
+  }, [reportType]);
+
   // Generate sample report data based on filters
   useEffect(() => {
     generateReport();
@@ -346,6 +356,33 @@ const Reports = () => {
       // keep raw rows for detailed table if needed
       rows: rows,
     };
+  };
+
+  // Normalize any reportData into a consistent UI shape: { summary: [{label, value}], table: { columns: [], rows: [] }, chartData }
+  const normalizeReportData = (data, type) => {
+    if (!data) return { summary: [], table: { columns: [], rows: [] }, chartData: null };
+
+    const summaryEntries = Object.entries(data.summary || {}).map(([k, v]) => ({
+      label: k.replace(/([A-Z])/g, ' $1').trim(),
+      value: v,
+    }));
+
+    // Prefer explicit rows if provided (arrays of objects)
+    if (Array.isArray(data.rows) && data.rows.length > 0) {
+      const cols = Object.keys(data.rows[0]);
+      const rows = data.rows.map(r => cols.map(c => r[c]));
+      return { summary: summaryEntries, table: { columns: cols, rows }, chartData: data.chartData || data.chartData };
+    }
+
+    // Fallback: derive table from chartData (datasets x labels)
+    if (data.chartData && Array.isArray(data.chartData.labels)) {
+      const cols = ['Series', ...data.chartData.labels];
+      const rows = (data.chartData.datasets || []).map(ds => [ds.label || 'Series', ...(ds.data || [])]);
+      return { summary: summaryEntries, table: { columns: cols, rows }, chartData: data.chartData };
+    }
+
+    // Last resort: empty table
+    return { summary: summaryEntries, table: { columns: [], rows: [] }, chartData: data.chartData || null };
   };
 
   const generateAppointmentReport = () => {
@@ -674,6 +711,8 @@ const Reports = () => {
 
   const renderChart = () => {
     if (!reportData) return null;
+    const chartDataParam = reportData.chartData;
+    if (!chartDataParam) return null;
 
     const options = {
       responsive: true,
@@ -687,18 +726,20 @@ const Reports = () => {
         },
       },
     };
-
-    switch (reportData.chartType) {
+    switch ((reportData.chartType) || (chartDataParam.type)) {
       case 'bar':
-        return <Bar data={reportData.chartData} options={options} />;
+        return <Bar data={chartDataParam} options={options} />;
       case 'line':
-        return <Line data={reportData.chartData} options={options} />;
+        return <Line data={chartDataParam} options={options} />;
       case 'doughnut':
-        return <Doughnut data={reportData.chartData} options={options} />;
+        return <Doughnut data={chartDataParam} options={options} />;
       default:
-        return <Bar data={reportData.chartData} options={options} />;
+        return <Bar data={chartDataParam} options={options} />;
     }
   };
+
+  // compute normalized view once per render
+  const normalized = reportData ? normalizeReportData(reportData, reportType) : null;
 
   return (
     <div className="space-y-6">
@@ -758,13 +799,18 @@ const Reports = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A85C1]"
+              disabled={!isStatusApplicable(reportType)}
+              title={!isStatusApplicable(reportType) ? 'Status filter applies only to Appointments' : 'Filter by appointment status'}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A85C1] ${!isStatusApplicable(reportType) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
               <option value="all">All Status</option>
               <option value="active">Active Only</option>
               <option value="completed">Completed Only</option>
               <option value="cancelled">Cancelled Only</option>
             </select>
+            {!isStatusApplicable(reportType) && (
+              <div className="text-xs text-gray-500 mt-1">Status filter is only applicable to the Appointments report.</div>
+            )}
           </div>
         </div>
 
@@ -779,14 +825,12 @@ const Reports = () => {
       </div>
 
       {/* Summary Cards */}
-      {reportData && (
+      {normalized && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Object.entries(reportData.summary).map(([key, value]) => (
-            <div key={key} className="bg-white p-4 rounded-lg shadow-md border">
-              <div className="text-sm text-gray-500 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </div>
-              <div className="text-2xl font-bold text-black mt-1">{value}</div>
+          {normalized.summary.map(s => (
+            <div key={s.label} className="bg-white p-4 rounded-lg shadow-md border">
+              <div className="text-sm text-gray-500">{s.label}</div>
+              <div className="text-2xl font-bold text-black mt-1">{s.value}</div>
             </div>
           ))}
         </div>
@@ -799,7 +843,7 @@ const Reports = () => {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7A85C1]"></div>
           </div>
-        ) : reportData ? (
+        ) : normalized ? (
           <div className="h-64">
             {renderChart()}
           </div>
@@ -817,37 +861,30 @@ const Reports = () => {
             <h2 className="text-xl font-semibold text-black">Detailed Data</h2>
           </div>
           <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {reportData.chartData.labels.map((label, index) => (
-                      <th key={index} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    {reportData.chartData.datasets[0].data.map((value, index) => (
-                      <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {value}
-                      </td>
-                    ))}
-                  </tr>
-                  {reportData.chartData.datasets.length > 1 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      {reportData.chartData.datasets[1].data.map((value, index) => (
-                        <td key={index} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                          {value}
-                        </td>
+                      {normalized.table.columns.map((col, ci) => (
+                        <th key={ci} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {String(col).replace(/([A-Z])/g, ' $1').trim()}
+                        </th>
                       ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {normalized.table.rows.map((r, ri) => (
+                      <tr key={ri}>
+                        {r.map((cell, ci) => (
+                          <td key={ci} className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
           </div>
         </div>
       )}

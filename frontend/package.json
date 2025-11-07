@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "chart.js": "^4.5.1",
-  "lucide-react": "^0.552.0",
-  "jspdf": "^3.0.3",
-  "jspdf-autotable": "^5.0.2",
+<<<<<<< HEAD
+    "lucide-react": "^0.552.0",
+=======
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+>>>>>>> feature/reporting-service
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",

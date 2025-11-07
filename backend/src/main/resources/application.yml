@@ -2,8 +2,11 @@ spring:
   profiles:
     active: dev
   config:
-    # Load variables from .env if present (no error if missing)
-    import: optional:file:.env[.properties]
+    # Load variables from .env if present (no error if missing). Place a .env file in the project root (same level as pom.xml)
+    # Example: copy .env.example to .env and fill in real secrets locally.
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
 
 server:
   port: 8080
@@ -33,9 +36,9 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?createDatabaseIfNotExist=true}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/gearup?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DATABASE_USERNAME:root}
-    password: ${DATABASE_PASSWORD:1234}
+    password: ${DATABASE_PASSWORD:Sdl22@16897Sdl}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -68,7 +71,8 @@ jwt:
 
 sendgrid:
   api:
-    key: ${SENDGRID_API_KEY}
+    # Provide a safe default in dev so the app can start without a real key
+    key: ${SENDGRID_API_KEY:dev-api-key}
   from:
     email: ${SENDGRID_FROM_EMAIL:noreply@autoserve.com}
 

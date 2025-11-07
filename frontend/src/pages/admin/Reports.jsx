@@ -185,6 +185,85 @@ const Reports = () => {
       }
       return;
     }
+    // If financial, attempt to fetch admin overview and revenue by service
+    if (reportType === 'financial') {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const [overviewRes, revenueRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/admin/analytics/overview`, { headers }),
+          fetch(`${API_BASE_URL}/admin/analytics/revenue/by-service`, { headers })
+        ]);
+
+        if (!overviewRes.ok || !revenueRes.ok) throw new Error('Failed to fetch financial analytics');
+
+        const overview = await overviewRes.json();
+        const revenueList = await revenueRes.json();
+
+        // Map to reportData
+        const totalRevenue = overview.totalRevenue || 0;
+        const totalAppointments = overview.totalAppointments || 0;
+
+        const chartData = {
+          labels: revenueList.map(r => r.service),
+          datasets: [{
+            label: 'Revenue by Service',
+            data: revenueList.map(r => r.revenue),
+            backgroundColor: 'rgba(122, 133, 193, 0.8)'
+          }]
+        };
+
+        setReportData({
+          summary: { totalRevenue, totalAppointments },
+          chartData,
+          chartType: 'bar',
+          rows: revenueList.map(r => ({ service: r.service, revenue: r.revenue }))
+        });
+      } catch (err) {
+        console.error('Failed to fetch financial report', err);
+        setReportData(generateFinancialReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // If feedbacks, attempt to fetch admin feedback rating analytics
+    if (reportType === 'feedbacks') {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${API_BASE_URL}/admin/analytics/feedback-rating`, { headers });
+        if (!res.ok) throw new Error('Failed to fetch feedback analytics');
+        const ratingData = await res.json();
+
+        // ratingData expected shape: { distribution: { '5': n, '4': n, ... }, total: n, average: x }
+        const distribution = ratingData.distribution || {};
+        const totalFeedbacks = ratingData.total || Object.values(distribution).reduce((s, v) => s + v, 0);
+        const avg = ratingData.average || Object.entries(distribution).reduce((s, [star, cnt]) => s + Number(star) * cnt, 0) / Math.max(totalFeedbacks, 1);
+
+        const chartData = {
+          labels: ['5★', '4★', '3★', '2★', '1★'],
+          datasets: [{
+            label: 'Feedbacks',
+            data: [distribution['5'] || 0, distribution['4'] || 0, distribution['3'] || 0, distribution['2'] || 0, distribution['1'] || 0],
+            backgroundColor: ['rgba(34,197,94,0.8)','rgba(132,204,22,0.8)','rgba(251,191,36,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)']
+          }]
+        };
+
+        setReportData({
+          summary: { totalFeedbacks, averageRating: `${avg.toFixed(2)} / 5` },
+          chartData,
+          chartType: 'doughnut'
+        });
+      } catch (err) {
+        console.error('Failed to fetch feedback report', err);
+        setReportData(generateFeedbackReport());
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     // Non-appointments: keep existing local sample generators
     setTimeout(() => {
       let data;

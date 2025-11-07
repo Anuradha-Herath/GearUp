@@ -28,6 +28,7 @@ public class AppointmentService {
     private final VehicleRepository vehicleRepository;
     private final ServiceRepository serviceRepository;
     private final TimeLogRepository timeLogRepository;
+    private final VectorDBService vectorDBService;
 
     @Transactional
     public List<Appointment> getMyAppointments() {
@@ -72,7 +73,10 @@ public class AppointmentService {
         appointment.setEstimatedCost(service.getEstimatedPrice());
         appointment.setStatus("REQUESTED");
         
-        return appointmentRepository.save(appointment);
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.addAppointment(savedAppointment);
+        return savedAppointment;
     }
 
     public Appointment updateAppointment(Long id, Appointment appointmentDetails) {
@@ -93,7 +97,10 @@ public class AppointmentService {
         appointment.setTime(appointmentDetails.getTime());
         appointment.setAdditionalNote(appointmentDetails.getAdditionalNote());
         
-        return appointmentRepository.save(appointment);
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.updateAppointment(updatedAppointment);
+        return updatedAppointment;
     }
 
     public void deleteAppointment(Long id) {
@@ -111,6 +118,8 @@ public class AppointmentService {
         }
         
         appointmentRepository.deleteById(id);
+        // Remove from vector DB
+        vectorDBService.deleteAppointment(id);
     }
 
     public List<Appointment> getAllAppointments() {
@@ -246,6 +255,10 @@ public class AppointmentService {
         // Always update the appointment status, regardless of TimeLog success/failure
         System.out.println("Setting appointment status to: " + upperStatus);
         appointment.setStatus(upperStatus);
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+        // Sync to vector DB
+        vectorDBService.updateAppointment(updatedAppointment);
+        return updatedAppointment;
         Appointment savedAppointment = appointmentRepository.save(appointment);
         System.out.println("Appointment status updated successfully to: " + savedAppointment.getStatus());
         

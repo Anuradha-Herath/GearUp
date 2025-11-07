@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.autoserve.repository.FinancialTransactionRepository;
+import com.autoserve.entity.FinancialTransaction;
 
 @RestController
 @RequestMapping("/api/admin/analytics")
@@ -23,6 +25,7 @@ public class AdminAnalyticsController {
 
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
+        private final FinancialTransactionRepository financialTransactionRepository;
 
     /**
      * Get dashboard overview statistics
@@ -66,12 +69,21 @@ public class AdminAnalyticsController {
         
         overview.put("thisMonthAppointments", thisMonthAppointments);
         
-        // Revenue calculation (estimated)
-        double totalRevenue = allAppointments.stream()
+        // Revenue calculation: prefer actual financial transactions if present, otherwise estimate from finished appointments
+        Double financialSum = null;
+        try {
+            financialSum = financialTransactionRepository.sumAmountBetween(sd, ed);
+        } catch (Exception ex) {
+            // repo may not exist or query fail in some environments; fall back to appointment estimate
+            financialSum = null;
+        }
+
+        double appointmentEstimate = allAppointments.stream()
                 .filter(apt -> "FINISHED".equals(apt.getStatus()))
                 .mapToDouble(apt -> apt.getEstimatedCost())
                 .sum();
-        
+
+        double totalRevenue = (financialSum != null && financialSum > 0) ? financialSum : appointmentEstimate;
         overview.put("totalRevenue", totalRevenue);
         
         return ResponseEntity.ok(overview);
@@ -319,4 +331,32 @@ public class AdminAnalyticsController {
         
         return ResponseEntity.ok(revenueData);
     }
+
+        /**
+         * Financial transactions summary (total revenue, total transactions, monthly breakdown)
+         */
+        @GetMapping("/financial-summary")
+        public ResponseEntity<Map<String, Object>> getFinancialSummary(@org.springframework.web.bind.annotation.RequestParam(required = false) String startDate,
+                                                                                                                                   @org.springframework.web.bind.annotation.RequestParam(required = false) String endDate) {
+                java.time.LocalDate sd = startDate != null && !startDate.isBlank() ? java.time.LocalDate.parse(startDate) : null;
+                java.time.LocalDate ed = endDate != null && !endDate.isBlank() ? java.time.LocalDate.parse(endDate) : null;
+
+                // use repository aggregates to compute totals (avoids null / empty-list sum issues)
+                Double totalRevenue = financialTransactionRepository.sumAmountBetween(sd, ed);
+                if (totalRevenue == null) totalRevenue = 0.0;
+                Long totalTransactions = financialTransactionRepository.countBetween(sd, ed);
+
+                // monthly breakdown still needs the transactions themselves for grouping
+                List<FinancialTransaction> txs = (sd != null && ed != null) ? financialTransactionRepository.findByDateBetween(sd, ed) : financialTransactionRepository.findAll();
+                java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy");
+                Map<String, Double> monthly = txs.stream()
+                        .filter(t -> t.getDate() != null)
+                        .collect(Collectors.groupingBy(t -> t.getDate().withDayOfMonth(1).format(fmt), Collectors.summingDouble(t -> t.getAmount() != null ? t.getAmount() : 0.0)));
+
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("totalRevenue", totalRevenue);
+                out.put("totalTransactions", totalTransactions != null ? totalTransactions.intValue() : 0);
+                out.put("monthly", monthly);
+                return ResponseEntity.ok(out);
+        }
 }

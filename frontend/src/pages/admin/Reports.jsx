@@ -28,6 +28,7 @@ ChartJS.register(
 );
 
 const Reports = () => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
   const [reportType, setReportType] = useState('appointments');
   const [dateRange, setDateRange] = useState('last30days');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -72,8 +73,9 @@ const Reports = () => {
           // 'active' and others left unset to be handled server-side in future
         }
 
-        const url = '/api/reports/appointments' + (params.toString() ? `?${params.toString()}` : '');
-        const res = await fetch(url);
+  // Use configured API base URL so dev server and production call the correct backend
+  const url = `${API_BASE_URL}/reports/appointments` + (params.toString() ? `?${params.toString()}` : '');
+  const res = await fetch(url);
         const analytics = await res.json();
         if (analytics == null || analytics.message) {
           // fall back to local sample if server returns no data

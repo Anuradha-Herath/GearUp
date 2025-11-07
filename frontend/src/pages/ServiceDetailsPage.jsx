@@ -63,7 +63,7 @@ const ServiceDetailsPage = ({ hideHeader = false, isAuthenticatedProp }) => {
   // Error state
   if (error || !service) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screenbg-gray-100">
         {!hideHeader && <Header />}
         <div className="container mx-auto px-4 py-16 text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
@@ -72,7 +72,7 @@ const ServiceDetailsPage = ({ hideHeader = false, isAuthenticatedProp }) => {
               {error || 'Service Not Found'}
             </h1>
             <button
-              onClick={() => navigate('/customer/services')}
+              onClick={() => navigate('/services')}
               className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-primary/90 transition-colors"
             >
               Back to Services
@@ -90,13 +90,13 @@ const ServiceDetailsPage = ({ hideHeader = false, isAuthenticatedProp }) => {
       {/* Service Details Section */}
       <div className="container mx-auto px-4 py-12">
         <button
-          onClick={() => navigate('/customer/services')}
+          onClick={() => navigate('/services')}
           className="inline-flex items-center text-primary font-medium hover:text-primary/80 transition-colors mb-8"
         >
           ← Back to Services
         </button>
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-5xl mx-auto">
           {/* Service Header */}
           <div className="bg-gradient-to-r from-primary to-primary/80 py-12 px-6 text-white">
             <h1 className="text-4xl font-bold mb-4">{service.title}</h1>

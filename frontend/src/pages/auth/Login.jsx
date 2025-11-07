@@ -31,7 +31,7 @@ const Login = () => {
       await login(formData);
       
       // Get the intended destination or redirect based on role
-      const from = location.state?.from?.pathname;
+      const from = location.state?.from?.pathname || location.state?.returnUrl;
       
       if (from) {
         navigate(from, { replace: true });
@@ -76,6 +76,11 @@ const Login = () => {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {location.state?.message && (
+            <div className="mb-4 p-3 text-blue-600 bg-blue-50 border border-blue-200 rounded-md text-center">
+              {location.state.message}
+            </div>
+          )}
           {error && (
             <div className="mb-4 p-3 text-red-600 bg-red-50 border border-red-200 rounded-md text-center">
               {error}

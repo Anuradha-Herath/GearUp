@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import adminService from '../../services/adminService';
 import { useToast } from '../../context/ToastContext';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
+import ImageUploader from '../../components/common/ImageUploader';
 
 const ManageServices = () => {
   const [services, setServices] = useState([]);
@@ -250,15 +251,11 @@ const ManageServices = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
+                    Service Image
                   </label>
-                  <input
-                    type="text"
-                    name="image"
+                  <ImageUploader
                     value={formData.image}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A85C1]"
-                    placeholder="Enter image URL (optional)"
+                    onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
                     disabled={loading}
                   />
                 </div>

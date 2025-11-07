@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Loader from "../../components/common/Loader";
 import Button from "../../components/common/Button";
+import feedbackService from "../../services/feedbackService";
+import { useToast } from "../../context/ToastContext";
 
 const MOCK_COMPLETED_APPOINTMENTS = [
   {
@@ -31,16 +33,82 @@ export default function FeedbackForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editFeedbackId, setEditFeedbackId] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
 
   useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => {
-      setAppointments(MOCK_COMPLETED_APPOINTMENTS);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }, []);
+    const fetchCompletedAppointments = async () => {
+      setLoading(true);
+      try {
+        const completedAppointments = await feedbackService.getCompletedAppointments();
+        
+        // Transform appointments to the expected format
+        const transformedAppointments = completedAppointments.map(appointment => ({
+          id: appointment.id,
+          serviceDate: appointment.date ? new Date(appointment.date).toISOString() : new Date().toISOString(),
+          vehicle: { 
+            make: `${appointment.vehicle?.company || ''} ${appointment.vehicle?.model || ''}`.trim() || 'Vehicle'
+          },
+          service: appointment.service?.title || 'Service'
+        }));
+
+        // Check if we're in edit mode
+        if (location?.state?.editFeedbackId) {
+          setEditMode(true);
+          setEditFeedbackId(location.state.editFeedbackId);
+          setRating(location.state.existingRating || 0);
+          setFeedbackText(location.state.existingText || '');
+        }
+
+        // If navigated with an appointmentId in location.state, ensure it's present and pre-select it
+        if (location?.state?.appointmentId) {
+          const incomingId = String(location.state.appointmentId);
+          const exists = transformedAppointments.find((a) => String(a.id) === incomingId);
+          
+          if (!exists) {
+            // Add the appointment from navigation state if not found in completed appointments
+            transformedAppointments.unshift({
+              id: incomingId,
+              serviceDate: location.state.serviceDate ? new Date(location.state.serviceDate).toISOString() : new Date().toISOString(),
+              vehicle: { make: location.state.vehicle || 'Vehicle' },
+              service: 'Service'
+            });
+          }
+
+          // Pre-select the appointment passed from MyBookings
+          setSelectedAppointment(incomingId);
+        }
+
+        setAppointments(transformedAppointments);
+      } catch (error) {
+        console.error('Error fetching completed appointments:', error);
+        setError('Failed to load completed appointments. Please try again.');
+        
+        // Fallback to mock data if API fails
+        const mockList = [...MOCK_COMPLETED_APPOINTMENTS];
+        if (location?.state?.appointmentId) {
+          const incomingId = String(location.state.appointmentId);
+          const exists = mockList.find((a) => String(a.id) === incomingId);
+          if (!exists) {
+            mockList.unshift({
+              id: incomingId,
+              serviceDate: location.state.serviceDate ? new Date(location.state.serviceDate).toISOString() : new Date().toISOString(),
+              vehicle: { make: location.state.vehicle || 'Vehicle' },
+            });
+          }
+          setSelectedAppointment(incomingId);
+        }
+        setAppointments(mockList);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompletedAppointments();
+  }, [location]);
 
   const submitFeedback = async (e) => {
     e.preventDefault();
@@ -56,18 +124,38 @@ export default function FeedbackForm() {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      console.log("Submitted feedback:", {
-        appointmentId: selectedAppointment,
-        rating,
-        text: feedbackText,
-      });
+    try {
+      if (editMode && editFeedbackId) {
+        // Update existing feedback
+        await feedbackService.updateFeedback(
+          editFeedbackId,
+          rating,
+          feedbackText
+        );
+        toast.success('Feedback updated successfully!');
+      } else {
+        // Submit new feedback
+        await feedbackService.submitFeedback(
+          parseInt(selectedAppointment),
+          rating,
+          feedbackText
+        );
+        toast.success('Feedback submitted successfully!');
+      }
+      
       setShowSuccess(true);
+      
       setTimeout(() => {
         navigate("/customer/feedbacks");
       }, 1500);
+      
+    } catch (error) {
+      console.error('Error submitting/updating feedback:', error);
+      setError(error.message || `Failed to ${editMode ? 'update' : 'submit'} feedback. Please try again.`);
+      toast.error(`Failed to ${editMode ? 'update' : 'submit'} feedback. Please try again.`);
+    } finally {
       setSubmitting(false);
-    }, 600);
+    }
   };
 
   if (loading) return <Loader />;
@@ -86,8 +174,12 @@ export default function FeedbackForm() {
             </svg>
             Back
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Share Your Experience</h1>
-          <p className="text-gray-600">Help us improve our service with your valuable feedback</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {editMode ? 'Update Your Feedback' : 'Share Your Experience'}
+          </h1>
+          <p className="text-gray-600">
+            {editMode ? 'Modify your previous feedback' : 'Help us improve our service with your valuable feedback'}
+          </p>
         </div>
 
         {/* Success Message */}
@@ -142,7 +234,7 @@ export default function FeedbackForm() {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
-                          })} • ${a.vehicle?.make || a.vehicle || "Vehicle"}`
+                          })} • ${a.service || a.vehicle?.make || a.vehicle || "Service"}`
                         : `Appointment ${a.id || a._id}`}
                     </option>
                   ))}
@@ -224,9 +316,9 @@ export default function FeedbackForm() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={submitting || !selectedAppointment || rating < 1}
+                disabled={submitting || (!editMode && !selectedAppointment) || rating < 1}
                 className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2 ${
-                  submitting || !selectedAppointment || rating < 1
+                  submitting || (!editMode && !selectedAppointment) || rating < 1
                     ? "bg-gray-300 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 }`}
@@ -237,14 +329,14 @@ export default function FeedbackForm() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Submitting...</span>
+                    <span>{editMode ? 'Updating...' : 'Submitting...'}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>Submit Feedback</span>
+                    <span>{editMode ? 'Update Feedback' : 'Submit Feedback'}</span>
                   </>
                 )}
               </button>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import appointmentService from '../../services/appointmentService';
 import { useToast } from '../../context/ToastContext';
 import ConfirmationModal from '../../components/common/ConfirmationModal';
@@ -14,6 +15,7 @@ const MyBookings = () => {
     action: null,
   });
   const toast = useToast();
+  const navigate = useNavigate();
 
   // Fetch real appointments from backend
   useEffect(() => {
@@ -287,6 +289,14 @@ const MyBookings = () => {
                             className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                           >
                             Cancel Booking
+                          </button>
+                        ) : null}
+                        {booking.status.toLowerCase() === 'finished' ? (
+                          <button
+                            onClick={() => navigate('/customer/feedback-form', { state: { appointmentId: String(booking.id), serviceDate: booking.date, vehicle: booking.vehicle } })}
+                            className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                          >
+                            Add Feedback
                           </button>
                         ) : null}
                         <button className="px-4 py-2 bg-[#7A85C1] text-white text-sm font-medium rounded-lg hover:bg-[#6a75a8] transition-colors">

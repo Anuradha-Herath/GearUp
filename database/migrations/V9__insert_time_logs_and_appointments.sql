@@ -1,10 +1,10 @@
 -- V9__insert_time_logs_and_appointments.sql
--- Insert time_logs using employees table and insert appointments (idempotent)
+-- Insert time_logs using users table and insert appointments (idempotent)
 
--- Time log (use employees table for employee_id)
+-- Time log (use users table for employee_id)
 INSERT INTO time_logs (description, start_time, end_time, employee_id, project_id)
 SELECT 'Initial inspection', NOW(), DATE_ADD(NOW(), INTERVAL 1 HOUR), e.id, p.id
-FROM employees e
+FROM users e
 JOIN projects p ON p.name = 'Oil Change Campaign'
 WHERE e.email = 'tom.tech@example.com'
   AND NOT EXISTS (SELECT 1 FROM time_logs tl WHERE tl.description = 'Initial inspection' AND tl.project_id = p.id);

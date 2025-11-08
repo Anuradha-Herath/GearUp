@@ -1,0 +1,97 @@
+---
+# Ingress Configuration (OPTIONAL)
+# Use this for advanced routing and SSL/TLS termination
+# Requires ingress controller to be installed in cluster
+# For Docker Desktop, you may need to install ingress-nginx separately
+#
+# To install ingress-nginx on Docker Desktop:
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.0/deploy/static/provider/cloud/deploy.yaml
+#
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gearup-ingress
+  namespace: gearup
+  labels:
+    app: gearup
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # For SSL certificates
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  # TLS configuration (optional)
+  # tls:
+  # - hosts:
+  #   - gearup.example.com
+  #   secretName: gearup-tls
+  
+  rules:
+  # Frontend routing
+  - host: localhost                      # Change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
+  
+  # Backend API routing
+  - host: api.localhost                  # Change to your API domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+
+---
+# Network Policy (optional - for advanced security)
+# Restricts traffic between pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gearup-network-policy
+  namespace: gearup
+spec:
+  podSelector: {}
+  
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  ingress:
+  # Allow frontend to receive from outside
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+  
+  # Allow backend to receive from frontend
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+  
+  # Allow MySQL to receive from backend
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 3306
+  
+  egress:
+  # Allow all outgoing traffic for now
+  - to:
+    - namespaceSelector: {}

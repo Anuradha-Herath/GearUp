@@ -1,0 +1,44 @@
+---
+# Frontend Service
+# Exposes the React frontend (Nginx) to external users
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: gearup
+  labels:
+    app: frontend
+    component: web
+spec:
+  type: NodePort                         # NodePort for external access
+  selector:
+    app: frontend
+  
+  # Port configuration
+  ports:
+  - port: 80                             # Port for accessing service
+    targetPort: 80                       # Port on container
+    protocol: TCP
+    name: http
+    nodePort: 30000                      # Fixed port on host (30000-32767)
+  
+  sessionAffinity: None
+
+---
+# Optional: LoadBalancer service type
+# Use this if deploying to cloud provider (AWS, Azure, GCP)
+# They will provision a load balancer automatically
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: frontend-lb
+#   namespace: gearup
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: frontend
+#   ports:
+#   - port: 80
+#     targetPort: 80
+#     protocol: TCP
+#     name: http

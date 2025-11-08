@@ -1,0 +1,47 @@
+---
+# Backend Service
+# Exposes the Spring Boot backend to other pods and optionally to external traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: gearup
+  labels:
+    app: backend
+    component: api
+spec:
+  type: NodePort                         # NodePort for external access (or ClusterIP for internal only)
+  selector:
+    app: backend
+  
+  # Port configuration
+  ports:
+  - port: 8080                           # Port other pods use to connect
+    targetPort: 8080                     # Port on container
+    protocol: TCP
+    name: http
+    nodePort: 30080                      # Optional: Fixed port on host (30000-32767)
+  
+  # Session affinity (optional)
+  sessionAffinity: None
+
+---
+# Alternative: ClusterIP version (uncomment to use instead of NodePort)
+# Use this if you only want internal access within cluster
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: backend
+#   namespace: gearup
+#   labels:
+#     app: backend
+#     component: api
+# spec:
+#   type: ClusterIP
+#   selector:
+#     app: backend
+#   ports:
+#   - port: 8080
+#     targetPort: 8080
+#     protocol: TCP
+#     name: http

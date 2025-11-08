@@ -1,0 +1,204 @@
+---
+# Spring Boot Backend Deployment
+# This creates the backend pods running the AutoServe application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: gearup
+  labels:
+    app: backend
+    component: api
+spec:
+  replicas: 1                            # Single instance for development (increase for HA)
+  selector:
+    matchLabels:
+      app: backend
+  
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1                        # Max 1 extra pod during update
+      maxUnavailable: 0                  # Min pods always available
+  
+  template:
+    metadata:
+      labels:
+        app: backend
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    
+    spec:
+      # DNS for inter-pod communication
+      dnsPolicy: ClusterFirst
+      
+      # Containers
+      containers:
+      - name: backend
+        # Image built locally
+        image: gearup/backend:latest
+        imagePullPolicy: IfNotPresent    # Use local image if available
+        
+        # Container ports
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        
+        # Environment variables
+        env:
+        # Spring Configuration
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: SPRING_PROFILE
+        
+        # Database Configuration
+        - name: DATABASE_URL
+          value: "jdbc:mysql://mysql:3306/gearup?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&autoReconnect=true&failOverReadOnly=false"
+        
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: DB_USER
+        
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: DB_PASSWORD
+        
+        # JWT Configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: JWT_SECRET
+        
+        - name: JWT_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: JWT_EXPIRATION
+        
+        # Email Configuration (SendGrid)
+        - name: SENDGRID_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: SENDGRID_API_KEY
+        
+        - name: SENDGRID_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: SENDGRID_FROM_EMAIL
+        
+        # AI/Chatbot Configuration (Gemini)
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gearup-secrets
+              key: GEMINI_API_KEY
+        
+        # Frontend URL for email verification links
+        - name: FRONTEND_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: FRONTEND_BASE_URL
+        
+        # Logging Configuration
+        - name: LOGGING_LEVEL_ROOT
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: LOGGING_LEVEL_ROOT
+        
+        - name: LOGGING_LEVEL_COM_AUTOSERVE
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: LOGGING_LEVEL_COM_AUTOSERVE
+        
+        # JVM Configuration via JAVA_OPTS
+        - name: JAVA_OPTS
+          value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseG1GC -XX:+OptimizeStringConcat -XX:+UseStringDeduplication"
+        
+        # Resource requests and limits
+        resources:
+          requests:
+            memory: "512Mi"              # Minimum memory
+            cpu: "250m"                  # Minimum CPU
+          limits:
+            memory: "1Gi"                # Maximum memory
+            cpu: "1000m"                 # Maximum CPU
+        
+        # Liveness probe - restart if not responding
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60        # Wait 60s for Spring Boot startup
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Readiness probe - pod ready to receive traffic
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000                # Run as 'spring' user (non-root)
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        
+        # Lifecycle hooks (optional - for graceful shutdown)
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - sleep 5
+      
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        fsReadOnlyRootFilesystem: false
+      
+      # Pod restart policy
+      restartPolicy: Always
+      
+      # Affinity rules (optional - for pod scheduling)
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - backend
+      #         topologyKey: kubernetes.io/hostname
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30

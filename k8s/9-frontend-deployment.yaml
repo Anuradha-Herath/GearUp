@@ -1,0 +1,131 @@
+---
+# React Frontend Deployment
+# Nginx container serving React build
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: gearup
+  labels:
+    app: frontend
+    component: web
+spec:
+  replicas: 1                            # Single instance for development
+  selector:
+    matchLabels:
+      app: frontend
+  
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  template:
+    metadata:
+      labels:
+        app: frontend
+        component: web
+      annotations:
+        prometheus.io/scrape: "false"
+    
+    spec:
+      dnsPolicy: ClusterFirst
+      
+      containers:
+      - name: frontend
+        # Image built locally
+        image: gearup/frontend:latest
+        imagePullPolicy: IfNotPresent
+        
+        # Container ports
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        
+        # Environment variables passed to nginx
+        env:
+        - name: NGINX_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: NGINX_HOST
+        
+        - name: NGINX_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gearup-config
+              key: NGINX_PORT
+        
+        # Resource requests and limits
+        resources:
+          requests:
+            memory: "64Mi"               # Frontend is lightweight
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        # Liveness probe
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Readiness probe
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+        
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 101                 # Nginx user
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        
+        # Volume mounts (for nginx cache and runtime)
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+      
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        fsReadOnlyRootFilesystem: false  # We need write access for nginx
+      
+      # Pod restart policy
+      restartPolicy: Always
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 15
+      
+      # Volumes
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+          defaultMode: 0644
+          optional: true
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}

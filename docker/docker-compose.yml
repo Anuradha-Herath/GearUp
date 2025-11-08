@@ -120,6 +120,9 @@ services:
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL}
       
+      # Gemini API Configuration (for Chatbot)
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      
       # Frontend URL for email verification links
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost}
       

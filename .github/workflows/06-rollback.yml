@@ -1,0 +1,239 @@
+# ==============================================================================
+# Rollback Production Deployment
+# ==============================================================================
+# This workflow handles rollback to a previous production deployment
+# in case of critical issues
+#
+# Triggers:
+#   - Manual trigger (workflow_dispatch) - emergency rollback
+# ==============================================================================
+
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Version to rollback to'
+        required: true
+      reason:
+        description: 'Reason for rollback'
+        required: true
+      skip_approval:
+        description: 'Skip approval (emergency only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+concurrency:
+  group: rollback-production
+  cancel-in-progress: false
+
+jobs:
+  pre-rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify rollback request
+        run: |
+          echo "🔄 Rollback Request Details"
+          echo "Target Version: ${{ github.event.inputs.target_version }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Skip Approval: ${{ github.event.inputs.skip_approval }}"
+
+      - name: Notify team
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "⚠️ Production rollback initiated",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Rollback Initiated* ⚠️\nTarget Version: `${{ github.event.inputs.target_version }}`\nReason: `${{ github.event.inputs.reason }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  backup-current:
+    runs-on: ubuntu-latest
+    needs: pre-rollback
+
+    steps:
+      - name: Backup current deployment
+        run: |
+          echo "Creating backup of current production state..."
+          BACKUP_ID=$(date +%s)
+          echo "Backup ID: $BACKUP_ID"
+          # Add backup logic
+
+      - name: Save deployment state
+        run: |
+          echo "Saving current deployment state..."
+          # Add state save logic
+
+  rollback:
+    runs-on: ubuntu-latest
+    needs: backup-current
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: github-actions-rollback
+          aws-region: ${{ secrets.AWS_REGION }}
+        if: secrets.AWS_ROLE_TO_ASSUME != ''
+
+      - name: Rollback ECS services
+        run: |
+          echo "Rolling back ECS services..."
+          
+          aws ecs update-service \
+            --cluster gearup-production \
+            --service gearup-backend \
+            --task-definition gearup-backend:$(aws ecs describe-services --cluster gearup-production --services gearup-backend --query 'services[0].taskDefinition' --output text --region ${{ secrets.AWS_REGION }} | grep -oE '[0-9]+$') \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }} || true
+          
+          echo "✅ ECS rollback initiated"
+        if: secrets.AWS_REGION != ''
+        continue-on-error: true
+
+      - name: Rollback with SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_SERVER_IP }} >> ~/.ssh/known_hosts
+          
+          echo "Rolling back to ${{ github.event.inputs.target_version }}..."
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.PRODUCTION_SERVER_IP }} \
+            "cd /app && \
+             git checkout ${{ github.event.inputs.target_version }} && \
+             docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
+             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d"
+        if: secrets.PRODUCTION_SERVER_IP != ''
+        continue-on-error: true
+
+  verify-rollback:
+    runs-on: ubuntu-latest
+    needs: rollback
+
+    steps:
+      - name: Health check after rollback
+        run: |
+          echo "Verifying rollback health..."
+          
+          for i in {1..30}; do
+            BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.gearup.example.com/actuator/health)
+            FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://gearup.example.com/health)
+            
+            if [ "$BACKEND_STATUS" = "200" ] && [ "$FRONTEND_STATUS" = "200" ]; then
+              echo "✅ Rollback successful - Services are healthy"
+              exit 0
+            fi
+            
+            echo "Attempt $i/30: Backend=$BACKEND_STATUS, Frontend=$FRONTEND_STATUS"
+            sleep 5
+          done
+          
+          echo "❌ Services failed to become healthy after rollback"
+          exit 1
+
+  post-rollback:
+    runs-on: ubuntu-latest
+    needs: [rollback, verify-rollback]
+    if: always()
+
+    steps:
+      - name: Create incident report
+        run: |
+          cat > incident-report.md << 'EOF'
+          # Production Rollback Incident Report
+          
+          **Date/Time:** ${{ github.event.head_commit.timestamp }}
+          **Initiated By:** ${{ github.actor }}
+          **Rollback Version:** ${{ github.event.inputs.target_version }}
+          **Reason:** ${{ github.event.inputs.reason }}
+          
+          ## Timeline
+          - Rollback initiated
+          - Services rolled back
+          - Health check completed
+          
+          ## Status
+          ${{ needs.verify-rollback.result == 'success' && '✅ Successful' || '❌ Failed' }}
+          
+          ## Next Steps
+          1. Investigate root cause of the issue
+          2. Document lessons learned
+          3. Implement fix in develop branch
+          4. Create new test cases if needed
+          5. Schedule re-deployment after fixes are verified
+          EOF
+          
+          cat incident-report.md
+
+      - name: Upload incident report
+        uses: actions/upload-artifact@v3
+        with:
+          name: incident-report
+          path: incident-report.md
+
+      - name: Notify Slack - Rollback Success
+        if: needs.verify-rollback.result == 'success'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Rollback completed successfully",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Rollback Successful* ✅\nRolled back to: `${{ github.event.inputs.target_version }}`\nReason: `${{ github.event.inputs.reason }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack - Rollback Failed
+        if: needs.verify-rollback.result == 'failure'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Rollback failed - CRITICAL ISSUE",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Rollback FAILED* 🚨\nTarget Version: `${{ github.event.inputs.target_version }}`\n\n*IMMEDIATE ACTION REQUIRED*"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

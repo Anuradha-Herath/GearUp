@@ -1,0 +1,44 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "url": [
+        "http://localhost/",
+        "http://localhost/dashboard"
+      ],
+      "staticDistDir": "./frontend/dist"
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    },
+    "assert": {
+      "preset": "lighthouse:recommended",
+      "assertions": {
+        "first-contentful-paint": [
+          "warn",
+          {
+            "maxNumericValue": 2500
+          }
+        ],
+        "largest-contentful-paint": [
+          "warn",
+          {
+            "maxNumericValue": 4000
+          }
+        ],
+        "cumulative-layout-shift": [
+          "warn",
+          {
+            "maxNumericValue": 0.1
+          }
+        ],
+        "interactive": [
+          "warn",
+          {
+            "maxNumericValue": 3500
+          }
+        ]
+      }
+    }
+  }
+}

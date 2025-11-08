@@ -55,6 +55,9 @@ services:
       SERVER_SSL_KEYSTORE_PASSWORD: "${SSL_KEYSTORE_PASSWORD}"
       SERVER_SSL_KEYSTORE_TYPE: "PKCS12"
       
+      # Gemini API Configuration (for Chatbot)
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      
       # Production: Strict logging
       LOGGING_LEVEL_ROOT: WARN
       LOGGING_LEVEL_COM_AUTOSERVE: INFO

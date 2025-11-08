@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY frontend/package.json frontend/package-lock.json ./
 
-# Install dependencies with fresh install (no cached modules from Windows)
-RUN npm ci --prefer-offline --no-audit
+# Install dependencies
+RUN npm install --prefer-offline --no-audit
 
 # Copy source code
 COPY frontend/ ./

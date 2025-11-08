@@ -17,10 +17,14 @@ data:
   # Spring Boot Configuration
   SPRING_PROFILE: "prod"
   LOGGING_LEVEL_ROOT: "INFO"
-  LOGGING_LEVEL_COM_AUTOSERVE: "INFO"
+  LOGGING_LEVEL_COM_AUTOSERVE: "DEBUG"
   
   # Frontend Configuration
-  FRONTEND_BASE_URL: "http://localhost"
+  # IMPORTANT: Update this to your actual frontend URL for email verification links
+  # Local development: http://localhost:5173
+  # Docker Desktop with NodePort: http://localhost:30000
+  # Production with domain: https://yourdomain.com
+  FRONTEND_BASE_URL: "http://localhost:30000"
   NGINX_HOST: "localhost"
   NGINX_PORT: "80"
   

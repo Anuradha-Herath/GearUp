@@ -209,8 +209,10 @@ dist
 .dockerignore
 
 # Kubernetes
-# Usually, you don't want to ignore k8s files, but if you have secrets, maybe ignore them
-# secrets-configmap.yaml might contain secrets, but in this project, it's probably fine
+# Usually, you don't want to ignore k8s files, but if you have secrets, ignore them
+# secrets-configmap.yaml might contain secrets, ignore it
+k8s/3-secrets.yaml
+3-secrets.yaml
 
 # Logs
 logs

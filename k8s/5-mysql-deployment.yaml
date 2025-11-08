@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: mysql
-        image: mysql:8.0-oracle
+        image: mysql:5.7
         imagePullPolicy: IfNotPresent
         
         # Ports exposed by container
@@ -119,15 +119,27 @@ spec:
         # Security context
         securityContext:
           runAsNonRoot: false            # MySQL image runs as root
+          runAsUser: 0                   # Run as root user
+          allowPrivilegeEscalation: false # Prevent privilege escalation
+          # Don't drop ALL capabilities - MySQL needs some system capabilities
           capabilities:
             drop:
+            - NET_RAW
             - ALL
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+            - SETGID
+            - SETUID
+            - SETFCAP
+            - SETPCAP
+            - NET_BIND_SERVICE
+            - SYS_CHROOT
       
       # Volumes
       volumes:
       - name: mysql-data
-        persistentVolumeClaim:
-          claimName: mysql-pvc
+        emptyDir: {}                     # Use emptyDir instead of PVC (data lost on pod restart)
       
       - name: mysql-init
         emptyDir: {}                     # Temporary volume for init scripts

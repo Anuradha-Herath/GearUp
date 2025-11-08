@@ -15,15 +15,25 @@ COPY frontend/ ./
 # Build
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - Use Apache httpd instead of nginx (simpler, fewer permission issues)
+FROM httpd:2.4-alpine
 
 # Copy built assets
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/local/apache2/htdocs/
 
-# Simple nginx config for SPA
-RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri /index.html; } }' > /etc/nginx/conf.d/default.conf
+# Configure Apache for SPA (serve index.html for all routes)
+RUN echo '<VirtualHost *:80>' > /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'DocumentRoot /usr/local/apache2/htdocs' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo '<Directory /usr/local/apache2/htdocs>' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteEngine On' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteBase /' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteRule ^index\.html$ - [L]' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteCond %{REQUEST_FILENAME} !-f' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteCond %{REQUEST_FILENAME} !-d' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'RewriteRule . /index.html [L]' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo '</Directory>' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo '</VirtualHost>' >> /usr/local/apache2/conf/extra/httpd-spa.conf && \
+    echo 'Include conf/extra/httpd-spa.conf' >> /usr/local/apache2/conf/httpd.conf && \
+    sed -i 's/#LoadModule rewrite_module/LoadModule rewrite_module/' /usr/local/apache2/conf/httpd.conf
 
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]

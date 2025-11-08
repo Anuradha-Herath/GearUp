@@ -29,16 +29,16 @@ public class MailService {
      * Send HTML email using SendGrid
      */
     public void sendVerificationEmail(String toEmail, String subject, String htmlBody) throws IOException {
-        // Skip actual email sending in dev mode
-        if ("dev".equals(activeProfile) && "dev-api-key".equals(apiKey)) {
-            logger.info("📧 [DEV MODE] Email simulation - Would send email:");
-            logger.info("   To: {}", toEmail);
-            logger.info("   Subject: {}", subject);
-            logger.info("   Body preview: {}", htmlBody.substring(0, Math.min(100, htmlBody.length())) + "...");
-            logger.info("   ✅ Email 'sent' successfully (simulated in dev mode)");
-            return;
+        // Validate API key is configured
+        if (apiKey == null || apiKey.isBlank() || "YOUR_SENDGRID_API_KEY".equals(apiKey)) {
+            logger.warn("⚠️  SendGrid API key is not properly configured. Email not sent to: {}", toEmail);
+            logger.warn("   Subject: {}", subject);
+            logger.warn("   Please set SENDGRID_API_KEY environment variable");
+            throw new IOException("SendGrid API key is not configured. Cannot send email to " + toEmail);
         }
 
+        logger.info("📧 Attempting to send email via SendGrid to: {} with subject: {}", toEmail, subject);
+        
         Email from = new Email(fromEmail, "AutoServe Team");
         Email to = new Email(toEmail);
 
@@ -57,14 +57,18 @@ public class MailService {
             Response response = sg.api(request);
             int status = response.getStatusCode();
 
-            logger.info("SendGrid status={}, to={}, subject={}", status, toEmail, subject);
+            logger.info("✅ SendGrid responded with status={} for email to {}", status, toEmail);
             if (status >= 400) {
-                logger.error("SendGrid failed to send email to {}. Status: {}, Body: {}", 
+                logger.error("❌ SendGrid failed to send email to {}. Status: {}, Response body: {}", 
                              toEmail, status, response.getBody());
-                throw new IOException("Failed to send email. Status: " + status);
+                throw new IOException("Failed to send email. SendGrid returned status: " + status + ". Response: " + response.getBody());
             }
+            logger.info("✅ Email successfully sent to: {}", toEmail);
+        } catch (IOException ioEx) {
+            logger.error("❌ IO Exception sending email to {}: {}", toEmail, ioEx.getMessage(), ioEx);
+            throw ioEx;
         } catch (Exception ex) {
-            logger.error("Error sending email to {}: {}", toEmail, ex.getMessage(), ex);
+            logger.error("❌ Error sending email to {}: {}", toEmail, ex.getMessage(), ex);
             throw new IOException("Error sending email: " + ex.getMessage(), ex);
         }
     }

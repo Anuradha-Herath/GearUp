@@ -181,7 +181,6 @@ spec:
       # Pod-level security context
       securityContext:
         runAsNonRoot: true
-        fsReadOnlyRootFilesystem: false
       
       # Pod restart policy
       restartPolicy: Always

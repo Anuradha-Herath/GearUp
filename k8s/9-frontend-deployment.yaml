@@ -90,8 +90,7 @@ spec:
         
         # Security context
         securityContext:
-          runAsNonRoot: true
-          runAsUser: 101                 # Nginx user
+          runAsNonRoot: false            # Run as root to avoid permission issues with nginx
           allowPrivilegeEscalation: false
           capabilities:
             drop:
@@ -99,32 +98,17 @@ spec:
         
         # Volume mounts (for nginx cache and runtime)
         volumeMounts:
-        - name: nginx-config
-          mountPath: /etc/nginx/conf.d
-          readOnly: true
         - name: nginx-cache
           mountPath: /var/cache/nginx
         - name: nginx-run
           mountPath: /var/run
       
-      # Pod-level security context
-      securityContext:
-        runAsNonRoot: true
-        fsReadOnlyRootFilesystem: false  # We need write access for nginx
-      
-      # Pod restart policy
+            # Pod restart policy
       restartPolicy: Always
       
       # Termination grace period
       terminationGracePeriodSeconds: 15
-      
-      # Volumes
       volumes:
-      - name: nginx-config
-        configMap:
-          name: nginx-config
-          defaultMode: 0644
-          optional: true
       - name: nginx-cache
         emptyDir: {}
       - name: nginx-run

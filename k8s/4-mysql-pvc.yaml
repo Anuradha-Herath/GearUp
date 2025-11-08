@@ -14,7 +14,7 @@ spec:
   resources:
     requests:
       storage: 5Gi                      # Allocate 5GB for database
-  storageClassName: standard             # Use default storage class
+  storageClassName: hostpath             # Use default hostpath storage class
   
 ---
 # Storage class configuration (uses Docker Desktop's default)

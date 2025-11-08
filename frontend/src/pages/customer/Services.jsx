@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 const Services = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,7 +24,7 @@ const Services = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       
-      const response = await fetch('http://localhost:8080/api/customer/services', {
+      const response = await fetch(`${API_BASE_URL}/customer/services`, {
         headers: headers
       });
       

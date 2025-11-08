@@ -9,6 +9,7 @@ WORKDIR /build
 COPY backend/pom.xml .
 
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
+# This includes dependencies for: Chatbot (OkHttp, Gson), Image Upload (SendGrid), JWT, and other services
 RUN mvn dependency:go-offline -B
 
 # Copy source code

@@ -4,54 +4,6 @@ const ManageOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock data
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD-101',
-      customerName: 'Sarah Connor',
-      vehicle: 'Tesla Model 3 - TES 1234',
-      serviceType: 'Battery Check',
-      date: '2025-10-27',
-      assignedTo: 'Tech-A',
-      status: 'In Progress',
-      estimatedCost: '$150',
-      progress: 60
-    },
-    {
-      id: 'ORD-102',
-      customerName: 'Robert Brown',
-      vehicle: 'BMW X5 - BMW 5678',
-      serviceType: 'Engine Diagnostic',
-      date: '2025-10-26',
-      assignedTo: 'Tech-B',
-      status: 'Pending',
-      estimatedCost: '$200',
-      progress: 0
-    },
-    {
-      id: 'ORD-103',
-      customerName: 'Emily Davis',
-      vehicle: 'Audi A4 - AUD 9012',
-      serviceType: 'Transmission Service',
-      date: '2025-10-27',
-      assignedTo: 'Tech-C',
-      status: 'In Progress',
-      estimatedCost: '$350',
-      progress: 30
-    },
-    {
-      id: 'ORD-104',
-      customerName: 'David Wilson',
-      vehicle: 'Nissan Altima - NIS 3456',
-      serviceType: 'AC Repair',
-      date: '2025-10-25',
-      assignedTo: 'Tech-A',
-      status: 'Completed',
-      estimatedCost: '$180',
-      progress: 100
-    },
-  ]);
-
   const handleStatusChange = (orderId, newStatus) => {
     setOrders(orders.map(order =>
       order.id === orderId ? { ...order, status: newStatus } : order

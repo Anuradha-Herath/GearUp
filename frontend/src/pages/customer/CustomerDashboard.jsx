@@ -1,12 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Hero from '../../components/landing/Hero';
 import Features from '../../components/landing/Features';
 import Testimonials from '../../components/landing/Testimonials';
 import LandingFooter from '../../components/landing/LandingFooter';
+import appointmentService from '../../services/appointmentService';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
+  const [serviceSummary, setServiceSummary] = useState({
+    totalBookings: 0,
+    completedServices: 0,
+    upcomingAppointments: 0,
+    totalSpent: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchServiceSummary();
+  }, []);
+
+  const fetchServiceSummary = async () => {
+    try {
+      setLoading(true);
+      const appointments = await appointmentService.getMyAppointments();
+      
+      // Calculate summary statistics
+      const totalBookings = appointments.length;
+      const completedServices = appointments.filter(
+        appointment => appointment.status.toUpperCase() === 'FINISHED'
+      ).length;
+      const upcomingAppointments = appointments.filter(
+        appointment => !['FINISHED', 'CANCELLED'].includes(appointment.status.toUpperCase())
+      ).length;
+      const totalSpent = appointments
+        .filter(appointment => appointment.status.toUpperCase() === 'FINISHED')
+        .reduce((total, appointment) => {
+          return total + (appointment.estimatedCost || appointment.service?.estimatedPrice || 0);
+        }, 0);
+
+      setServiceSummary({
+        totalBookings,
+        completedServices,
+        upcomingAppointments,
+        totalSpent
+      });
+    } catch (error) {
+      console.error('Error fetching service summary:', error);
+      // Keep default values on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-gray-100">
@@ -67,25 +112,33 @@ const CustomerDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="bg-primary/20 rounded-lg p-6 shadow-sm">
-                <div className="text-3xl font-bold text-primary mb-2">5</div>
+                <div className="text-3xl font-bold text-primary mb-2">
+                  {loading ? '...' : serviceSummary.totalBookings}
+                </div>
                 <div className="text-gray-600">Total Bookings</div>
               </div>
             </div>
             <div className="text-center">
               <div className="bg-green-200 rounded-lg p-6 shadow-sm">
-                <div className="text-3xl font-bold text-green-700 mb-2">4</div>
+                <div className="text-3xl font-bold text-green-700 mb-2">
+                  {loading ? '...' : serviceSummary.completedServices}
+                </div>
                 <div className="text-gray-600">Completed Services</div>
               </div>
             </div>
             <div className="text-center">
               <div className="bg-blue-200 rounded-lg p-6 shadow-sm">
-                <div className="text-3xl font-bold text-blue-700 mb-2">1</div>
+                <div className="text-3xl font-bold text-blue-700 mb-2">
+                  {loading ? '...' : serviceSummary.upcomingAppointments}
+                </div>
                 <div className="text-gray-600">Upcoming Appointments</div>
               </div>
             </div>
             <div className="text-center">
               <div className="bg-yellow-200 rounded-lg p-6 shadow-sm">
-                <div className="text-3xl font-bold text-yellow-700 mb-2">$450</div>
+                <div className="text-3xl font-bold text-yellow-700 mb-2">
+                  {loading ? '...' : `$${serviceSummary.totalSpent.toFixed(2)}`}
+                </div>
                 <div className="text-gray-600">Total Spent</div>
               </div>
             </div>

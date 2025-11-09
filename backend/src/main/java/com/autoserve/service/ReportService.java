@@ -1,11 +1,11 @@
 package com.autoserve.service;
 
 import com.autoserve.entity.Appointment;
-import com.autoserve.entity.Employee;
+import com.autoserve.entity.Feedback;
 import com.autoserve.entity.User;
 import com.autoserve.entity.Vehicle;
 import com.autoserve.repository.AppointmentRepository;
-import com.autoserve.repository.EmployeeRepository;
+import com.autoserve.repository.FeedbackRepository;
 import com.autoserve.repository.TimeLogRepository;
 import com.autoserve.repository.UserRepository;
 import com.autoserve.repository.VehicleRepository;
@@ -28,21 +28,21 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private final AppointmentRepository appointmentRepository;
-    private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final TimeLogRepository timeLogRepository;
+    private final FeedbackRepository feedbackRepository;
 
     public ReportService(AppointmentRepository appointmentRepository,
-                         EmployeeRepository employeeRepository,
                          UserRepository userRepository,
                          VehicleRepository vehicleRepository,
-                         TimeLogRepository timeLogRepository) {
+                         TimeLogRepository timeLogRepository,
+                         FeedbackRepository feedbackRepository) {
         this.appointmentRepository = appointmentRepository;
-        this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
         this.vehicleRepository = vehicleRepository;
         this.timeLogRepository = timeLogRepository;
+        this.feedbackRepository = feedbackRepository;
     }
 
     /**
@@ -139,9 +139,13 @@ public class ReportService {
     }
 
     public Map<String, Object> buildEmployeeAnalytics(java.time.LocalDate startDate, java.time.LocalDate endDate) {
-        List<Employee> employees = employeeRepository.findAll();
+        // Get all users with EMPLOYEE role from the users table
+        List<User> employees = userRepository.findAll().stream()
+                .filter(user -> "EMPLOYEE".equals(user.getRole()))
+                .collect(Collectors.toList());
+        
         List<Appointment> all = appointmentRepository.findAll();
-        List<Employee> employeeList = employees == null ? Collections.emptyList() : employees;
+        List<User> employeeList = employees == null ? Collections.emptyList() : employees;
         List<Appointment> appointmentList = all == null ? Collections.emptyList() : all;
 
         // Apply optional date filtering to appointmentList into a separate variable to keep appointmentList effectively final
@@ -159,11 +163,12 @@ public class ReportService {
             filteredAppointments = appointmentList;
         }
 
-    Map<String, Object> out = new LinkedHashMap<>();
+        Map<String, Object> out = new LinkedHashMap<>();
         List<Map<String, Object>> list = employeeList.stream().map(e -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", e.getId());
-            m.put("name", e.getName());
+            m.put("name", e.getUsername());
+            m.put("email", e.getEmail());
             long count = filteredAppointments.stream().filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getEmployee().getId().equals(e.getId())).count();
             m.put("appointmentsCount", count);
             return m;
@@ -174,19 +179,68 @@ public class ReportService {
     }
 
     /**
+     * Build feedback analytics from the feedbacks table.
+     */
+    public Map<String, Object> buildFeedbackAnalytics() {
+        List<Feedback> feedbacks = feedbackRepository.findAll();
+        
+        if (feedbacks == null || feedbacks.isEmpty()) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("totalFeedbacks", 0);
+            out.put("averageRating", 0.0);
+            out.put("feedbacks", Collections.emptyList());
+            return out;
+        }
+
+        double averageRating = feedbacks.stream()
+                .filter(f -> f.getRating() != null)
+                .mapToInt(Feedback::getRating)
+                .average()
+                .orElse(0.0);
+
+        Map<Integer, Long> ratingDistribution = feedbacks.stream()
+                .filter(f -> f.getRating() != null)
+                .collect(Collectors.groupingBy(Feedback::getRating, Collectors.counting()));
+
+        List<Map<String, Object>> feedbackList = feedbacks.stream().map(f -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", f.getId());
+            m.put("rating", f.getRating());
+            m.put("feedbackText", f.getFeedbackText());
+            m.put("customerEmail", f.getCustomer() != null ? f.getCustomer().getEmail() : null);
+            m.put("appointmentId", f.getAppointment() != null ? f.getAppointment().getId() : null);
+            m.put("createdAt", f.getCreatedAt());
+            return m;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("totalFeedbacks", feedbacks.size());
+        out.put("averageRating", Math.round(averageRating * 100.0) / 100.0);
+        out.put("ratingDistribution", ratingDistribution);
+        out.put("feedbacks", feedbackList);
+        return out;
+    }
+
+    /**
      * Build system level usage analytics.
      */
     public Map<String, Object> buildSystemAnalytics() {
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.findAll().stream().filter(User::isActive).count();
+        long totalCustomers = userRepository.findAll().stream().filter(u -> "CUSTOMER".equals(u.getRole())).count();
+        long totalEmployees = userRepository.findAll().stream().filter(u -> "EMPLOYEE".equals(u.getRole())).count();
         long totalVehicles = vehicleRepository.count();
         long totalAppointments = appointmentRepository.count();
+        long totalFeedbacks = feedbackRepository.count();
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("totalUsers", totalUsers);
         out.put("activeUsers", activeUsers);
+        out.put("totalCustomers", totalCustomers);
+        out.put("totalEmployees", totalEmployees);
         out.put("totalVehicles", totalVehicles);
         out.put("totalAppointments", totalAppointments);
+        out.put("totalFeedbacks", totalFeedbacks);
         long openTimeLogs = timeLogRepository.findAll().stream().filter(t -> t.getEndTime() == null).count();
         out.put("openTimeLogs", openTimeLogs);
         return out;
@@ -196,56 +250,107 @@ public class ReportService {
      * Generate a simple PDF report from analytics map. Returns PDF bytes.
      */
     public byte[] generateAppointmentsPdf(com.autoserve.dto.report.AppointmentAnalyticsDto analytics) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            Document doc = new Document(PageSize.A4.rotate(), 36, 36, 36, 36);
+        ByteArrayOutputStream baos = null;
+        Document doc = null;
+        try {
+            baos = new ByteArrayOutputStream();
+            doc = new Document(PageSize.A4.rotate(), 36, 36, 36, 36);
             PdfWriter.getInstance(doc, baos);
             doc.open();
 
             Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
             Font h2 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
 
-            doc.add(new Paragraph("Appointment Analytics Report", titleFont));
+            // Title
+            Paragraph title = new Paragraph("Appointment Analytics Report", titleFont);
+            title.setAlignment(Paragraph.ALIGN_CENTER);
+            doc.add(title);
             doc.add(new Paragraph(" "));
 
+            // Summary Section
             doc.add(new Paragraph("Summary", h2));
             Map<String, Long> statusCounts = analytics.getStatusCounts() != null ? analytics.getStatusCounts() : Collections.emptyMap();
             double totalRevenue = analytics.getTotalRevenue();
-            doc.add(new Paragraph("Total Appointments: " + analytics.getTotalAppointments()));
-            doc.add(new Paragraph("Total Revenue (estimated): " + totalRevenue));
-            doc.add(new Paragraph("Status counts: " + statusCounts.toString()));
+            doc.add(new Paragraph("Total Appointments: " + analytics.getTotalAppointments(), normalFont));
+            doc.add(new Paragraph("Total Revenue (estimated): $" + String.format("%.2f", totalRevenue), normalFont));
+            
+            if (!statusCounts.isEmpty()) {
+                doc.add(new Paragraph("Status Breakdown:", normalFont));
+                for (Map.Entry<String, Long> entry : statusCounts.entrySet()) {
+                    doc.add(new Paragraph("  - " + entry.getKey() + ": " + entry.getValue(), normalFont));
+                }
+            }
             doc.add(new Paragraph(" "));
 
-            doc.add(new Paragraph("Daily counts (last 30 days)", h2));
+            // Daily Counts Section
+            doc.add(new Paragraph("Daily Counts (Last 30 Days)", h2));
             Map<String, Long> daily = analytics.getDailyCounts() != null ? analytics.getDailyCounts() : Collections.emptyMap();
-            PdfPTable dailyTable = new PdfPTable(2);
-            dailyTable.addCell("Date");
-            dailyTable.addCell("Count");
-            for (Map.Entry<String, Long> e : daily.entrySet()) {
-                dailyTable.addCell(e.getKey());
-                dailyTable.addCell(String.valueOf(e.getValue()));
+            
+            if (!daily.isEmpty()) {
+                PdfPTable dailyTable = new PdfPTable(2);
+                dailyTable.setWidthPercentage(50);
+                dailyTable.addCell("Date");
+                dailyTable.addCell("Count");
+                for (Map.Entry<String, Long> e : daily.entrySet()) {
+                    dailyTable.addCell(e.getKey());
+                    dailyTable.addCell(String.valueOf(e.getValue()));
+                }
+                doc.add(dailyTable);
+            } else {
+                doc.add(new Paragraph("No daily data available.", normalFont));
             }
-            doc.add(dailyTable);
             doc.add(new Paragraph(" "));
 
-            doc.add(new Paragraph("Appointments (sample)", h2));
+            // Appointments Details Section
+            doc.add(new Paragraph("Appointment Details", h2));
             java.util.List<com.autoserve.dto.report.AppointmentRowDto> rows = analytics.getRows() != null ? analytics.getRows() : Collections.emptyList();
-            PdfPTable tbl = new PdfPTable(6);
-            tbl.setWidths(new int[]{2, 2, 2, 2, 3, 3});
-            tbl.addCell("ID"); tbl.addCell("Date"); tbl.addCell("Time"); tbl.addCell("Status"); tbl.addCell("Customer"); tbl.addCell("Vehicle");
-            for (com.autoserve.dto.report.AppointmentRowDto r : rows) {
-                tbl.addCell(String.valueOf(r.getId()));
-                tbl.addCell(String.valueOf(r.getDate()));
-                tbl.addCell(String.valueOf(r.getTime()));
-                tbl.addCell(String.valueOf(r.getStatus()));
-                tbl.addCell(String.valueOf(r.getCustomerEmail()));
-                tbl.addCell(String.valueOf(r.getVehicleNumber()));
+            
+            if (!rows.isEmpty()) {
+                PdfPTable tbl = new PdfPTable(6);
+                tbl.setWidthPercentage(100);
+                tbl.setWidths(new int[]{1, 2, 2, 2, 3, 3});
+                
+                // Header
+                tbl.addCell("ID");
+                tbl.addCell("Date");
+                tbl.addCell("Time");
+                tbl.addCell("Status");
+                tbl.addCell("Customer");
+                tbl.addCell("Vehicle");
+                
+                // Data rows
+                for (com.autoserve.dto.report.AppointmentRowDto r : rows) {
+                    tbl.addCell(r.getId() != null ? String.valueOf(r.getId()) : "-");
+                    tbl.addCell(r.getDate() != null ? r.getDate() : "-");
+                    tbl.addCell(r.getTime() != null ? r.getTime() : "-");
+                    tbl.addCell(r.getStatus() != null ? r.getStatus() : "-");
+                    tbl.addCell(r.getCustomerEmail() != null ? r.getCustomerEmail() : "-");
+                    tbl.addCell(r.getVehicleNumber() != null ? r.getVehicleNumber() : "-");
+                }
+                doc.add(tbl);
+            } else {
+                doc.add(new Paragraph("No appointments found.", normalFont));
             }
-            doc.add(tbl);
 
+            // Close document before returning
             doc.close();
-            return baos.toByteArray();
+            byte[] pdfBytes = baos.toByteArray();
+            baos.close();
+            
+            return pdfBytes;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate PDF", e);
+            if (doc != null && doc.isOpen()) {
+                doc.close();
+            }
+            if (baos != null) {
+                try {
+                    baos.close();
+                } catch (Exception ex) {
+                    // Ignore
+                }
+            }
+            throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
         }
     }
 

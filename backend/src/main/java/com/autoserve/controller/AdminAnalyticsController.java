@@ -2,8 +2,10 @@ package com.autoserve.controller;
 
 import com.autoserve.entity.Appointment;
 import com.autoserve.entity.User;
+import com.autoserve.entity.Feedback;
 import com.autoserve.repository.AppointmentRepository;
 import com.autoserve.repository.UserRepository;
+import com.autoserve.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +27,8 @@ public class AdminAnalyticsController {
 
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
-        private final FinancialTransactionRepository financialTransactionRepository;
+    private final FinancialTransactionRepository financialTransactionRepository;
+    private final FeedbackRepository feedbackRepository;
 
     /**
      * Get dashboard overview statistics
@@ -49,11 +52,20 @@ public class AdminAnalyticsController {
                         }).toList();
                 }
         List<User> allCustomers = userRepository.findAll().stream()
-                .filter(user -> "USER".equals(user.getRole()))
+                .filter(user -> "CUSTOMER".equals(user.getRole()))
                 .toList();
+        
+        List<User> allEmployees = userRepository.findAll().stream()
+                .filter(user -> "EMPLOYEE".equals(user.getRole()))
+                .toList();
+        
+        // Get feedback counts
+        long totalFeedbacks = feedbackRepository.count();
         
         overview.put("totalAppointments", allAppointments.size());
         overview.put("totalCustomers", allCustomers.size());
+        overview.put("totalEmployees", allEmployees.size());
+        overview.put("totalFeedbacks", totalFeedbacks);
         overview.put("activeCustomers", allCustomers.stream()
                 .mapToInt(customer -> customer.isActive() ? 1 : 0).sum());
         
@@ -358,5 +370,57 @@ public class AdminAnalyticsController {
                 out.put("totalTransactions", totalTransactions != null ? totalTransactions.intValue() : 0);
                 out.put("monthly", monthly);
                 return ResponseEntity.ok(out);
+        }
+
+        /**
+         * Get feedback analytics with rating distribution
+         */
+        @GetMapping("/feedback/analytics")
+        public ResponseEntity<Map<String, Object>> getFeedbackAnalytics() {
+                List<Feedback> allFeedbacks = feedbackRepository.findAll();
+                
+                Map<String, Object> feedbackData = new HashMap<>();
+                feedbackData.put("totalFeedbacks", allFeedbacks.size());
+                
+                // Calculate average rating
+                double averageRating = allFeedbacks.stream()
+                        .filter(f -> f.getRating() != null)
+                        .mapToInt(Feedback::getRating)
+                        .average()
+                        .orElse(0.0);
+                
+                feedbackData.put("averageRating", Math.round(averageRating * 100.0) / 100.0);
+                
+                // Rating distribution (1-5 stars)
+                Map<Integer, Long> ratingDistribution = allFeedbacks.stream()
+                        .filter(f -> f.getRating() != null)
+                        .collect(Collectors.groupingBy(Feedback::getRating, Collectors.counting()));
+                
+                feedbackData.put("ratingDistribution", ratingDistribution);
+                
+                // Recent feedbacks (last 10)
+                List<Map<String, Object>> recentFeedbacks = allFeedbacks.stream()
+                        .sorted((f1, f2) -> {
+                                if (f1.getCreatedAt() == null && f2.getCreatedAt() == null) return 0;
+                                if (f1.getCreatedAt() == null) return 1;
+                                if (f2.getCreatedAt() == null) return -1;
+                                return f2.getCreatedAt().compareTo(f1.getCreatedAt());
+                        })
+                        .limit(10)
+                        .map(f -> {
+                                Map<String, Object> feedbackMap = new HashMap<>();
+                                feedbackMap.put("id", f.getId());
+                                feedbackMap.put("rating", f.getRating());
+                                feedbackMap.put("feedbackText", f.getFeedbackText());
+                                feedbackMap.put("customerEmail", f.getCustomer() != null ? f.getCustomer().getEmail() : null);
+                                feedbackMap.put("appointmentId", f.getAppointment() != null ? f.getAppointment().getId() : null);
+                                feedbackMap.put("createdAt", f.getCreatedAt());
+                                return feedbackMap;
+                        })
+                        .collect(Collectors.toList());
+                
+                feedbackData.put("recentFeedbacks", recentFeedbacks);
+                
+                return ResponseEntity.ok(feedbackData);
         }
 }

@@ -113,6 +113,7 @@ const Reports = () => {
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch customers');
         const customers = await res.json();
+        console.log('Successfully fetched customers from API:', customers.length, 'customers');
         // Map to reportData shape
         const totalCustomers = Array.isArray(customers) ? customers.length : 0;
         const totalVehicles = Array.isArray(customers) ? customers.reduce((sum, c) => sum + (c.vehicleCount || 0), 0) : 0;
@@ -148,7 +149,8 @@ const Reports = () => {
           rows
         });
       } catch (err) {
-        console.error('Failed to fetch customers report', err);
+        console.error('Failed to fetch customers report from API, using fallback data:', err);
+        console.error('API URL was:', `${API_BASE_URL}/employee/customers`);
         setReportData(generateCustomerReport());
       } finally {
         setLoading(false);
@@ -190,7 +192,8 @@ const Reports = () => {
           });
         }
       } catch (err) {
-        console.error('Failed to fetch employees report', err);
+        console.error('Failed to fetch employees report from API, using fallback data:', err);
+        console.error('API URL was:', `${API_BASE_URL}/reports/employees`);
         setReportData(generateEmployeeReport());
       } finally {
         setLoading(false);
@@ -234,7 +237,8 @@ const Reports = () => {
           rows: revenueList.map(r => ({ service: r.service, revenue: r.revenue }))
         });
       } catch (err) {
-        console.error('Failed to fetch financial report', err);
+        console.error('Failed to fetch financial report from API, using fallback data:', err);
+        console.error('API URLs were:', `${API_BASE_URL}/admin/analytics/overview`, `${API_BASE_URL}/admin/analytics/revenue/by-service`);
         setReportData(generateFinancialReport());
       } finally {
         setLoading(false);
@@ -242,37 +246,46 @@ const Reports = () => {
       return;
     }
 
-    // If feedbacks, attempt to fetch admin feedback rating analytics
+    // If feedbacks, attempt to fetch admin feedback analytics
     if (reportType === 'feedbacks') {
       try {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const feedbackUrl = `${API_BASE_URL}/admin/analytics/feedback-rating${startDate ? `?startDate=${startDate}&endDate=${endDate}` : ''}`;
-  const res = await fetch(feedbackUrl, { headers });
+        const feedbackUrl = `${API_BASE_URL}/admin/analytics/feedback/analytics`;
+        const res = await fetch(feedbackUrl, { headers });
         if (!res.ok) throw new Error('Failed to fetch feedback analytics');
         const ratingData = await res.json();
 
-        // ratingData expected shape: { distribution: { '5': n, '4': n, ... }, total: n, average: x }
-        const distribution = ratingData.distribution || {};
-        const totalFeedbacks = ratingData.total || Object.values(distribution).reduce((s, v) => s + v, 0);
-        const avg = ratingData.average || Object.entries(distribution).reduce((s, [star, cnt]) => s + Number(star) * cnt, 0) / Math.max(totalFeedbacks, 1);
+        // ratingData shape from backend: { totalFeedbacks, averageRating, ratingDistribution: { 1: n, 2: n, ... } }
+        const distribution = ratingData.ratingDistribution || {};
+        const totalFeedbacks = ratingData.totalFeedbacks || 0;
+        const avg = ratingData.averageRating || 0;
 
         const chartData = {
           labels: ['5★', '4★', '3★', '2★', '1★'],
           datasets: [{
             label: 'Feedbacks',
-            data: [distribution['5'] || 0, distribution['4'] || 0, distribution['3'] || 0, distribution['2'] || 0, distribution['1'] || 0],
+            data: [distribution[5] || 0, distribution[4] || 0, distribution[3] || 0, distribution[2] || 0, distribution[1] || 0],
             backgroundColor: ['rgba(34,197,94,0.8)','rgba(132,204,22,0.8)','rgba(251,191,36,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)']
           }]
         };
 
+        const satisfactionRate = totalFeedbacks > 0 
+          ? (((distribution[5] || 0) + (distribution[4] || 0)) / totalFeedbacks * 100).toFixed(1)
+          : '0.0';
+
         setReportData({
-          summary: { totalFeedbacks, averageRating: `${avg.toFixed(2)} / 5` },
+          summary: { 
+            totalFeedbacks, 
+            averageRating: `${avg.toFixed(2)} / 5`,
+            satisfactionRate: `${satisfactionRate}%`
+          },
           chartData,
           chartType: 'doughnut'
         });
       } catch (err) {
-        console.error('Failed to fetch feedback report', err);
+        console.error('Failed to fetch feedback report from API, using fallback data:', err);
+        console.error('API URL was:', `${API_BASE_URL}/admin/analytics/feedback/analytics`);
         setReportData(generateFeedbackReport());
       } finally {
         setLoading(false);
@@ -614,13 +627,37 @@ const Reports = () => {
     };
   };
 
-  const exportReportPdf = () => {
+  const exportReportPdf = async () => {
     if (!reportData) return;
 
     // If appointments report, prefer server-generated PDF (attachment)
     if (reportType === 'appointments') {
-      // open in new tab to trigger download
-      window.open('/api/reports/appointments/pdf', '_blank');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/reports/appointments/pdf', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate PDF');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `appointments-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Failed to generate PDF report. Please try again.');
+      }
       return;
     }
 
@@ -681,12 +718,37 @@ const Reports = () => {
     doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
 
-  const exportReport = (format) => {
+  const exportReport = async (format) => {
     if (format === 'pdf') return exportReportPdf();
     if (format === 'csv') {
       // If appointments, prefer server CSV endpoint
       if (reportType === 'appointments') {
-        window.open('/api/reports/appointments/csv', '_blank');
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch('/api/reports/appointments/csv', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate CSV');
+          }
+
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `appointments-report-${new Date().toISOString().split('T')[0]}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (error) {
+          console.error('Error generating CSV:', error);
+          alert('Failed to generate CSV report. Please try again.');
+        }
         return;
       }
 
@@ -819,14 +881,14 @@ const Reports = () => {
           </div>
         </div>
 
-        <div className="mt-4">
+        {/* <div className="mt-4">
           <button
             onClick={generateReport}
             className="bg-[#7A85C1] text-white px-6 py-2 rounded-lg hover:bg-[#6a75a8] transition-colors"
           >
             Generate Report
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Summary Cards */}

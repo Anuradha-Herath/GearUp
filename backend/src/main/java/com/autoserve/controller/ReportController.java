@@ -107,5 +107,14 @@ public class ReportController {
         return ResponseEntity.ok(analytics);
     }
 
+    @GetMapping("/feedbacks")
+    public ResponseEntity<?> feedbacks() {
+        Map<String, Object> analytics = reportService.buildFeedbackAnalytics();
+        if (analytics == null || analytics.isEmpty()) {
+            return ResponseEntity.ok(Map.of("message", "No feedback data found."));
+        }
+        return ResponseEntity.ok(analytics);
+    }
+
 }
 

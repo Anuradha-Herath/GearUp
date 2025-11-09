@@ -1,5 +1,6 @@
 ---
 # Ingress Configuration (OPTIONAL)
+# it provides external access to the services in the cluster
 # Use this for advanced routing and SSL/TLS termination
 # Requires ingress controller to be installed in cluster
 # For Docker Desktop, you may need to install ingress-nginx separately

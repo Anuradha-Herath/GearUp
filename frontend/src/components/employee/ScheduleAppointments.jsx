@@ -1,12 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import employeeService from '../../services/employeeService';
 
 const ScheduleAppointments = () => {
   const [viewMode, setViewMode] = useState('today'); // today, tomorrow, week
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all appointments
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      const allAppointments = await employeeService.getAllAppointments();
+      
+      // Filter out FINISHED and CANCELLED appointments
+      const activeAppointments = allAppointments.filter(apt => 
+        apt.status !== 'FINISHED' && apt.status !== 'CANCELLED'
+      );
+      
+      // Transform appointments to the format expected by this component
+      const transformedAppointments = activeAppointments.map(apt => ({
+        id: apt.id,
+        date: apt.date,
+        time: apt.time,
+        customer: apt.customer?.username || 'Unknown Customer',
+        vehicle: `${apt.vehicle?.company || ''} ${apt.vehicle?.model || ''} (${apt.vehicle?.vehicleNumber || ''})`.trim(),
+        service: apt.service?.title || 'Unknown Service',
+        technician: apt.employee?.username || 'Unassigned',
+        status: apt.status === 'CONFIRMED' ? 'Confirmed' : apt.status === 'PENDING' ? 'Pending' : apt.status,
+        priority: 'Normal', // You can add priority logic based on service type or date
+        duration: '1-2 hrs', // You can calculate this based on service type
+        notes: apt.additionalNote || ''
+      }));
+      
+      setAppointments(transformedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Get tomorrow's date in YYYY-MM-DD format
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  // Get dates for the current week
+  const getWeekDates = () => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + (6 - today.getDay())); // Saturday
+    
+    const weekDates = [];
+    for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
+      weekDates.push(d.toISOString().split('T')[0]);
+    }
+    return weekDates;
+  };
 
   const getFilteredAppointments = () => {
-    const today = '2025-10-27';
-    const tomorrow = '2025-10-28';
+    const today = getTodayDate();
+    const tomorrow = getTomorrowDate();
+    const weekDates = getWeekDates();
     
     switch (viewMode) {
       case 'today':
@@ -14,7 +85,7 @@ const ScheduleAppointments = () => {
       case 'tomorrow':
         return appointments.filter(apt => apt.date === tomorrow);
       case 'week':
-        return appointments;
+        return appointments.filter(apt => weekDates.includes(apt.date));
       default:
         return appointments;
     }
@@ -43,10 +114,34 @@ const ScheduleAppointments = () => {
 
   const technicianGroups = groupByTechnician(filteredAppointments);
 
+  // Format date for display
+  const formatDisplayDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const today = getTodayDate();
+  const tomorrow = getTomorrowDate();
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6">`
         <div className="flex flex-col gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -66,7 +161,7 @@ const ScheduleAppointments = () => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Today
+              Today ({formatDisplayDate(today)})
             </button>
             <button
               onClick={() => setViewMode('tomorrow')}
@@ -76,7 +171,7 @@ const ScheduleAppointments = () => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Tomorrow
+              Tomorrow ({formatDisplayDate(tomorrow)})
             </button>
             <button
               onClick={() => setViewMode('week')}
@@ -96,7 +191,7 @@ const ScheduleAppointments = () => {
           <div className="bg-blue-50 rounded-lg p-4">
             <p className="text-sm text-gray-600">Today's Appointments</p>
             <p className="text-2xl font-bold text-primary">
-              {appointments.filter(a => a.date === '2025-10-27').length}
+              {appointments.filter(a => a.date === today).length}
             </p>
           </div>
           <div className="bg-green-50 rounded-lg p-4">
@@ -184,7 +279,7 @@ const ScheduleAppointments = () => {
                             </span>
                             <span className="flex items-center gap-1 text-gray-700">
                               <span>📅</span>
-                              {appointment.date}
+                              {formatDisplayDate(appointment.date)}
                             </span>
                           </div>
 
@@ -249,7 +344,7 @@ const ScheduleAppointments = () => {
                     </div>
                     <div>
                       <p className="text-gray-600">Date</p>
-                      <p className="font-medium text-gray-800">{selectedAppointment.date}</p>
+                      <p className="font-medium text-gray-800">{formatDisplayDate(selectedAppointment.date)}</p>
                     </div>
                     <div>
                       <p className="text-gray-600">Time</p>
@@ -319,4 +414,4 @@ const ScheduleAppointments = () => {
   );
 };
 
-export default ScheduleAppointments;
+export default ScheduleAppointments;   

@@ -168,7 +168,7 @@ const ChatbotWidget = () => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">AutoServe AI</h3>
+                  <h3 className="font-semibold text-lg">GearUp AI</h3>
                   <p className="text-xs text-white opacity-90">Always here to help</p>
                 </div>
               </div>

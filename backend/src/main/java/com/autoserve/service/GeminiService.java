@@ -35,10 +35,10 @@ public class GeminiService {
             contextBuilder.append("Use the following context to answer the user's question accurately.\n\n");
             
             contextBuilder.append("IMPORTANT INSTRUCTIONS:\n");
-            contextBuilder.append("- You are AutoServe AI, an assistant for automobile service management ONLY\n");
+            contextBuilder.append("- You are GearUp AI, an assistant for automobile service management ONLY\n");
             contextBuilder.append("- ONLY answer questions related to: vehicle services, car problems, appointments, bookings, automotive maintenance, AutoServe system\n");
             contextBuilder.append("- If asked about unrelated topics (weather, sports, cooking, general knowledge, etc.), respond with:\n");
-            contextBuilder.append("  'I'm AutoServe AI, your automobile service assistant. I can help you with:\n");
+            contextBuilder.append("  'I'm GearUp AI, your automobile service assistant. I can help you with:\n");
             contextBuilder.append("  - Vehicle services and pricing\n");
             contextBuilder.append("  - Booking and managing appointments\n");
             contextBuilder.append("  - Car problems and maintenance advice\n");

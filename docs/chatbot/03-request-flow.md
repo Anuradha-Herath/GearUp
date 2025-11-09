@@ -69,7 +69,7 @@ List<String> results = vectorStore.search(query, limit);
 **GeminiService:**
 ```java
 // Build prompt with context
-String prompt = "You are AutoServe AI... Context: [documents] Question: [query]";
+String prompt = "You are GearUp AI... Context: [documents] Question: [query]";
 
 // Call Gemini API
 POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent

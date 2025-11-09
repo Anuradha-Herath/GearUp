@@ -15,15 +15,11 @@ const ScheduleAppointments = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const allAppointments = await employeeService.getAllAppointments();
-      
-      // Filter out FINISHED and CANCELLED appointments
-      const activeAppointments = allAppointments.filter(apt => 
-        apt.status !== 'FINISHED' && apt.status !== 'CANCELLED'
-      );
+      // Fetch only confirmed appointments from the backend
+      const confirmedAppointments = await employeeService.getConfirmedAppointments();
       
       // Transform appointments to the format expected by this component
-      const transformedAppointments = activeAppointments.map(apt => ({
+      const transformedAppointments = confirmedAppointments.map(apt => ({
         id: apt.id,
         date: apt.date,
         time: apt.time,

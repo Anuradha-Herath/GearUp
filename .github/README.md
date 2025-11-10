@@ -658,33 +658,8 @@ For security concerns, please report privately to the maintainers.
 
 ---
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
----
-
-## 👥 Authors
-
-- **Anuradha Herath** - *Initial Development*
-
----
-
-## 💬 Support
-
-For support, email autoserve@example.com or open an issue in the GitHub repository.
-
----
-
-## 🙏 Acknowledgments
-
-- Spring Boot community
-- React community
-- MySQL team
-- Docker team
-- Kubernetes community
-
----
 
 <div align="center">
 

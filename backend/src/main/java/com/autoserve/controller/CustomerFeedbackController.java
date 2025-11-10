@@ -7,6 +7,7 @@ import com.autoserve.repository.UserRepository;
 import com.autoserve.service.FeedbackService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/customer/feedback")
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('CUSTOMER')")
 public class CustomerFeedbackController {
 
     @Autowired

@@ -3,12 +3,17 @@ package com.autoserve.controller;
 import com.autoserve.entity.Appointment;
 import com.autoserve.entity.Service;
 import com.autoserve.entity.Vehicle;
+import com.autoserve.entity.User;
 import com.autoserve.service.AppointmentService;
 import com.autoserve.service.ServiceService;
 import com.autoserve.service.VehicleService;
+import com.autoserve.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,11 +22,13 @@ import java.util.List;
 @RequestMapping("/api/customer/appointments")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('CUSTOMER')")
 public class CustomerAppointmentController {
 
     private final AppointmentService appointmentService;
     private final ServiceService serviceService;
     private final VehicleService vehicleService;
+    private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<List<Appointment>> getMyAppointments() {
@@ -30,8 +37,19 @@ public class CustomerAppointmentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         return appointmentService.getAppointmentById(id)
-                .map(ResponseEntity::ok)
+                .map(appointment -> {
+                    // Verify the appointment belongs to the logged-in customer
+                    if (!appointment.getCustomer().getId().equals(user.getId())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).<Appointment>build();
+                    }
+                    return ResponseEntity.ok(appointment);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

@@ -4,6 +4,7 @@ import com.autoserve.entity.Service;
 import com.autoserve.service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
 @RequestMapping("/api/customer/services")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('CUSTOMER')")
 public class CustomerServiceController {
 
     private final ServiceService serviceService;

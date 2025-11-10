@@ -43,11 +43,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/chatbot/**").permitAll() // Allow chatbot access for all users
-                .requestMatchers("/api/employee/**").permitAll() // Temporarily allow employee endpoints
                 // Permit CORS preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // During local development allow all /api requests (temporary)
-                .requestMatchers("/api/**").permitAll()
+                // Admin endpoints - require ADMIN role
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // Employee endpoints - require EMPLOYEE role
+                .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
+                // Customer endpoints - require CUSTOMER role
+                .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                 .requestMatchers("/actuator/**").permitAll() // Allow actuator endpoints for local health checks
                 .anyRequest().authenticated()
             )

@@ -6,6 +6,7 @@ import com.autoserve.repository.AppointmentRepository;
 import com.autoserve.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/employee/customers")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('EMPLOYEE')")
 public class EmployeeCustomerController {
 
     private final UserRepository userRepository;

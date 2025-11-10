@@ -4,6 +4,7 @@ import com.autoserve.entity.Service;
 import com.autoserve.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
 @RequestMapping("/api/employee/services")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('EMPLOYEE')")
 public class EmployeeServiceController {
 
     private final ServiceRepository serviceRepository;

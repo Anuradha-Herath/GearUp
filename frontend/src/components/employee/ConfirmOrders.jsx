@@ -2,40 +2,6 @@ import React, { useState } from 'react';
 
 const ConfirmOrders = () => {
   const [filter, setFilter] = useState('all');
-  
-  // Mock data - replace with actual API call
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD-001',
-      customerName: 'John Doe',
-      vehicle: 'Toyota Camry - ABC 1234',
-      serviceType: 'Oil Change',
-      date: '2025-10-27',
-      time: '10:00 AM',
-      status: 'Not Confirmed',
-      estimatedCost: '$80'
-    },
-    {
-      id: 'ORD-002',
-      customerName: 'Jane Smith',
-      vehicle: 'Honda Civic - XYZ 5678',
-      serviceType: 'Brake Inspection',
-      date: '2025-10-28',
-      time: '2:00 PM',
-      status: 'Not Confirmed',
-      estimatedCost: '$120'
-    },
-    {
-      id: 'ORD-003',
-      customerName: 'Mike Johnson',
-      vehicle: 'Ford F-150 - DEF 9012',
-      serviceType: 'Full Service',
-      date: '2025-10-27',
-      time: '3:30 PM',
-      status: 'Not Confirmed',
-      estimatedCost: '$250'
-    },
-  ]);
 
   const handleConfirm = (orderId) => {
     setOrders(orders.map(order => 

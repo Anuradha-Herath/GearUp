@@ -4,6 +4,7 @@ import com.autoserve.entity.Appointment;
 import com.autoserve.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
 @RequestMapping("/api/employee/appointments")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("hasRole('EMPLOYEE')")
 public class EmployeeAppointmentController {
 
     private final AppointmentService appointmentService;

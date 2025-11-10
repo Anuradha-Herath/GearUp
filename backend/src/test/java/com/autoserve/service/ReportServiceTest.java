@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -41,12 +42,13 @@ public class ReportServiceTest {
 
     @Mock
     private TimeLogRepository timeLogRepository;
-
+    
+    @InjectMocks
     private ReportService reportService;
 
     @BeforeEach
     void setUp() {
-        reportService = new ReportService(appointmentRepository, employeeRepository, userRepository, vehicleRepository, timeLogRepository);
+        // MockitoExtension will inject the mocked repositories into reportService
     }
 
     @Test
@@ -92,5 +94,4 @@ public class ReportServiceTest {
         assertThat(dto.getStatusCounts()).containsKey("finished");
         assertThat(dto.getTotalRevenue()).isEqualTo(50.0);
     }
-
 }

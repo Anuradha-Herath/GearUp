@@ -76,6 +76,27 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    // Show confirmation dialog
+    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+      return;
+    }
+
+    try {
+      console.log(`Attempting to cancel booking ${bookingId}`);
+      await employeeService.updateAppointmentStatus(bookingId, 'CANCELLED');
+      
+      // Remove the cancelled booking from the pending list
+      setBookings(bookings.filter(booking => booking.id !== bookingId));
+      
+      toast.success('Booking cancelled successfully!');
+      console.log('Booking cancelled and removed from list');
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      toast.error(`Failed to cancel booking: ${err.message}`);
+    }
+  };
+
   const handleViewDetails = (booking) => {
     setSelectedBooking(booking);
     setShowModal(true);
@@ -312,6 +333,15 @@ const EmployeeDashboard = () => {
                 className="flex-1 bg-[#7A85C1] hover:bg-[#6a75a8] text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 Confirm Order
+              </button>
+              <button
+                onClick={() => {
+                  handleCancelBooking(selectedBooking.id);
+                  closeModal();
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel Booking
               </button>
               <button
                 onClick={closeModal}

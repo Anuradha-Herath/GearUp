@@ -1,0 +1,42 @@
+---
+# ConfigMap for non-sensitive application configuration
+# These are mounted as environment variables in containers
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gearup-config
+  namespace: gearup
+  labels:
+    app: gearup
+data:
+  # Database Configuration
+  DB_NAME: "gearup"
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  
+  # Spring Boot Configuration
+  SPRING_PROFILE: "prod"
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_AUTOSERVE: "DEBUG"
+  
+  # Frontend Configuration
+  # IMPORTANT: Update this to your actual frontend URL for email verification links
+  # Local development: http://localhost:5173
+  # Docker Desktop with NodePort: http://localhost:30000
+  # Production with domain: https://yourdomain.com
+  FRONTEND_BASE_URL: "http://localhost:30000"
+  NGINX_HOST: "localhost"
+  NGINX_PORT: "80"
+  
+  # JWT Configuration
+  JWT_EXPIRATION: "86400000"
+  
+  # Application Ports
+  BACKEND_PORT: "8080"
+  
+  # Character Set
+  MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
+  MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
+  
+  # Compose Project Name (for naming)
+  COMPOSE_PROJECT_NAME: "gearup"

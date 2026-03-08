@@ -1,0 +1,22 @@
+---
+# Persistent Volume Claim for MySQL Data
+# This ensures database data persists even after pod restart
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: gearup
+  labels:
+    app: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce                    # Only one pod can mount at a time
+  resources:
+    requests:
+      storage: 5Gi                      # Allocate 5GB for database
+  storageClassName: hostpath             # Use default hostpath storage class
+  
+---
+# Storage class configuration (uses Docker Desktop's default)
+# Kubernetes will automatically create PersistentVolume when PVC is created
+# For Docker Desktop, this uses the local storage driver

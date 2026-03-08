@@ -1,0 +1,10 @@
+---
+# Namespace for GearUp Application
+# This isolates all resources for this project
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gearup
+  labels:
+    name: gearup
+    app: gearup

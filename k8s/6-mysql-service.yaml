@@ -1,0 +1,24 @@
+---
+# MySQL Service
+# This provides a stable network endpoint for database access
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: gearup
+  labels:
+    app: mysql
+spec:
+  type: ClusterIP                        # Internal service (only accessible within cluster)
+  selector:
+    app: mysql
+  
+  # Port configuration
+  ports:
+  - port: 3306                           # Port other pods use to connect
+    targetPort: 3306                     # Port on container
+    protocol: TCP
+    name: mysql
+  
+  # Session affinity ensures connections go to same pod
+  sessionAffinity: None
